@@ -23,7 +23,7 @@ import {
     PopoverTrigger,
 } from '@/components/ui/popover'
 import { DateTimePicker } from '@/components/ui/date-time-picker/date-time-picker'
-import { useStore } from './App'
+import { useStore } from './StateStore'
 import {
     Select,
     SelectContent,
@@ -31,29 +31,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
-import { Dialog } from './components/ui/dialog'
-
-export const PredictorFormSchema = z.object({
-    launch_latitude: z.string().refine((val) => !Number.isNaN(parseFloat(val))),
-    launch_longitude: z
-        .string()
-        .refine((val) => !Number.isNaN(parseFloat(val))),
-    launch_altitude: z.string().refine((val) => !Number.isNaN(parseFloat(val))),
-    launch_datetime: z.string(),
-    launch_datetime_range: z.string(),
-    burst_altitude: z.string().refine((val) => !Number.isNaN(parseFloat(val))),
-    burst_altitude_range: z
-        .string()
-        .refine((val) => !Number.isNaN(parseFloat(val))),
-    ascent_rate: z.string().refine((val) => !Number.isNaN(parseFloat(val))),
-    ascent_rate_range: z
-        .string()
-        .refine((val) => !Number.isNaN(parseFloat(val))),
-    descent_rate: z.string().refine((val) => !Number.isNaN(parseFloat(val))),
-    descent_rate_range: z
-        .string()
-        .refine((val) => !Number.isNaN(parseFloat(val))),
-})
+import { socket } from './socket'
+import {PredictorFormSchema} from './StateStore'
 
 export function DatePicker() {
     const [date, setDate] = useState<Date>()
@@ -87,6 +66,9 @@ export function DatePicker() {
 export function InputForm(props: any) {
     const markerPosition = useStore((state: any) => state.markerPosition)
     const isMulti = props.type === 'multi'
+    const [selectedDate, setSelectedDate] = useState('')
+    const [timeZone, setTimeZone] = useState('America/Denver')
+
     const [presets, setPresets] = useState([
         JSON.stringify({
             ascent_rate: '5',
@@ -102,15 +84,6 @@ export function InputForm(props: any) {
             launch_longitude: '-105.7546',
         }),
     ])
-    const [currentPreset, setCurrentPreset] = useState({})
-
-    useEffect(() => {
-        console.log(presets)
-    }, [presets])
-
-    useEffect(() => {
-        console.log(currentPreset)
-    }, [currentPreset])
 
     const form = useForm<z.infer<typeof PredictorFormSchema>>({
         resolver: zodResolver(PredictorFormSchema),
@@ -121,19 +94,41 @@ export function InputForm(props: any) {
             launch_datetime_range: isMulti ? '' : '0',
             launch_latitude: parseFloat(markerPosition[1]).toFixed(4),
             launch_longitude: parseFloat(markerPosition[0]).toFixed(4),
+            ascent_rate: '',
+            descent_rate: '',
+            burst_altitude: '',
+            launch_altitude: '',
+            launch_datetime: '',
         },
     })
 
-    const markerPosSub = useStore.subscribe((state: any) => {
-        form.setValue(
-            'launch_latitude',
-            parseFloat(state.markerPosition[1]).toFixed(4),
-        )
-        form.setValue(
-            'launch_longitude',
-            parseFloat(state.markerPosition[0]).toFixed(4),
-        )
-    })
+    useEffect(() => {
+        const markerPosSub = useStore.subscribe((state: any) => {
+            form.setValue(
+                'launch_latitude',
+                parseFloat(state.markerPosition[1]).toFixed(4),
+            )
+            form.setValue(
+                'launch_longitude',
+                parseFloat(state.markerPosition[0]).toFixed(4),
+            )
+
+            //socket.emit('getTimeZone', parseFloat(form.getValues().launch_longitude), parseFloat(form.getValues().launch_latitude))
+        })
+
+        return markerPosSub()
+    }, [])
+
+    useEffect(() => {
+        if (socket) {
+            socket.on('timeZone', (zones) => {
+                if (zones.length > 0) {
+                    console.log('setting time zone: ', zones[0])
+                    setTimeZone(zones[0])
+                }
+            })
+        }
+    }, [socket])
 
     return (
         <Form {...form}>
@@ -159,7 +154,7 @@ export function InputForm(props: any) {
                             const name = `[${vals.launch_latitude}, ${vals.launch_longitude}, ${vals.launch_altitude}] - ${vals.launch_datetime}`
                             return (
                                 // @ts-ignore
-                                <SelectItem value={preset}>{name}</SelectItem>
+                                <SelectItem key={name} value={preset}>{name}</SelectItem>
                             )
                         })}
                     </SelectContent>
@@ -216,10 +211,9 @@ export function InputForm(props: any) {
                                 <FormControl>
                                     <DateTimePicker
                                         granularity={'minute'}
-                                        onChange={(date) => {
-                                            const tz = 'America/Denver'
+                                        onChange={(date) => {                    
                                             field.onChange(
-                                                date.toDate(tz).toISOString(),
+                                                date.toDate(timeZone).toISOString(),
                                             )
                                         }}
                                     />

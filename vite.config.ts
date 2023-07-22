@@ -13,10 +13,15 @@ export default defineConfig({
   server: {
     proxy: {
 
-      '/api': {
+      '/tawhiri': {
         target: 'https://api.v2.sondehub.org/tawhiri',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
+        rewrite: (path) => path.replace(/^\/tawhiri/, ''),
+      },
+      '/socket.io': {
+        target: 'http://localhost:3001',
+        ws: true,
+        changeOrigin: true,
       },
     }
   }

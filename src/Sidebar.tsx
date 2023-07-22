@@ -1,12 +1,10 @@
-
-// @ts-ignore
-import dataCsv from './assets/data.csv'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs'
 import { Card, CardContent } from '@/components/ui/card'
 import { Progress } from './components/ui/progress'
 import { Button } from './components/ui/button'
 import { Camera } from 'lucide-react'
 import { Predict } from './Predict'
+import { DataCharts } from './DataCharts'
 
 export const Sidebar = () => {
     return (
@@ -37,7 +35,9 @@ export const Sidebar = () => {
                         </Button>
                     </div>
                 </TabsContent>
-                <TabsContent value="data"></TabsContent>
+                <TabsContent value="data">
+                    <DataCharts />
+                </TabsContent>
             </Tabs>
         </div>
     )
