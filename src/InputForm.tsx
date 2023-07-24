@@ -34,6 +34,8 @@ import {
 import { socket } from './socket'
 import {PredictorFormSchema} from './StateStore'
 
+import {CalendarDateTime} from '@internationalized/date'
+
 export function DatePicker() {
     const [date, setDate] = useState<Date>()
 
@@ -66,7 +68,7 @@ export function DatePicker() {
 export function InputForm(props: any) {
     const markerPosition = useStore((state: any) => state.markerPosition)
     const isMulti = props.type === 'multi'
-    const [selectedDate, setSelectedDate] = useState('')
+    const [selectedDate, setSelectedDate] = useState<CalendarDateTime>()
     const [timeZone, setTimeZone] = useState('America/Denver')
 
     const [presets, setPresets] = useState([
@@ -78,10 +80,11 @@ export function InputForm(props: any) {
             descent_rate: '12',
             descent_rate_range: '0',
             launch_altitude: '0',
-            launch_datetime: '2023-07-16T06:00:00.000Z',
+            launch_datetime: '2023-07-22T14:00:00.000Z',
             launch_datetime_range: '0',
             launch_latitude: '35.1525',
             launch_longitude: '-105.7546',
+            time_zone: 'America/Denver',
         }),
     ])
 
@@ -113,10 +116,10 @@ export function InputForm(props: any) {
                 parseFloat(state.markerPosition[0]).toFixed(4),
             )
 
-            //socket.emit('getTimeZone', parseFloat(form.getValues().launch_longitude), parseFloat(form.getValues().launch_latitude))
+            socket.emit('getTimeZone', parseFloat(form.getValues().launch_longitude), parseFloat(form.getValues().launch_latitude))
         })
 
-        return markerPosSub()
+        return markerPosSub
     }, [])
 
     useEffect(() => {
@@ -130,6 +133,21 @@ export function InputForm(props: any) {
         }
     }, [socket])
 
+    useEffect(() => {
+        if (selectedDate) {
+            console.log(selectedDate)
+            form.setValue('launch_datetime', selectedDate.toDate(timeZone).toISOString())
+        }
+    }, [selectedDate])
+
+    useEffect(() => {
+        console.log(presets)
+    }, [presets])
+
+    useEffect(() => {
+        console.log('time zone is now: ', timeZone)
+    }, [timeZone])
+
     return (
         <Form {...form}>
             <form
@@ -140,8 +158,27 @@ export function InputForm(props: any) {
                     onValueChange={(v) => {
                         const val = JSON.parse(v)
                         Object.keys(val).forEach((v: any) => {
-                            form.setValue(v, val[v])
+                            if (v === 'time_zone') {
+                                setTimeZone(val[v])
+                            } else {
+                                form.setValue(v, val[v])
+                            }
                         })
+                        const date = new Date(val['launch_datetime'])
+                        console.log(
+                            date.getFullYear(),
+                            date.getMonth() + 1, 
+                            date.getDate(), 
+                            date.getHours()+1
+                        )
+                        setSelectedDate(
+                            new CalendarDateTime(
+                                date.getFullYear(),
+                                date.getMonth() + 1, 
+                                date.getDate(), 
+                                date.getHours()+1
+                            )
+                        )
                     }}
                 >
                     <SelectTrigger className="w-full">
@@ -210,11 +247,10 @@ export function InputForm(props: any) {
                             <FormItem className="w-full">
                                 <FormControl>
                                     <DateTimePicker
-                                        granularity={'minute'}
+                                        granularity={'hour'}
+                                        value={selectedDate}
                                         onChange={(date) => {                    
-                                            field.onChange(
-                                                date.toDate(timeZone).toISOString(),
-                                            )
+                                            setSelectedDate(date as CalendarDateTime)
                                         }}
                                     />
                                 </FormControl>

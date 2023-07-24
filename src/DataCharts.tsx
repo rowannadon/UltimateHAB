@@ -1,29 +1,51 @@
-import {Chart, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, registerables, ElementChartOptions } from 'chart.js'
+import {Chart, registerables } from 'chart.js'
 import { Line } from 'react-chartjs-2'
-import { faker } from '@faker-js/faker'
-import { DataPoint, DataStoreState, useDataStore } from './StateStore';
+import { DataPoint, SimulationRun } from './StateStore';
 import 'chartjs-adapter-date-fns';
-import StreamingPlugin from 'chartjs-plugin-streaming';
+import ChartStreaming from 'chartjs-plugin-streaming';
 import { Card } from './components/ui/card';
 import { useEffect, useRef } from 'react';
+import { ScrollArea } from '@radix-ui/react-scroll-area';
+import { socket } from './socket';
 
 Chart.register(...registerables);
-Chart.register(StreamingPlugin);
+Chart.register(ChartStreaming);
 
 export const DataCharts = () => {
     const prevAlt = useRef(0)
     const prevTemp = useRef(0)
     const prevPres = useRef(0)
-    const date = useRef(Date.now())
+    const prevHum = useRef(0)
+    const prevVel = useRef(0)
+    const prevHvel = useRef(0)
 
-    const dataRef = useRef<DataPoint[]>(useDataStore.getState().data)
-    // Connect to the store on mount, disconnect on unmount, catch state-changes in a reference
-    useEffect(() => useDataStore.subscribe(
-        state => (dataRef.current = state.data)
-    ), [])
+    const date = useRef(0)
+    const dataRef = useRef<DataPoint[]>([])
+
+    useEffect(() => {
+        if (socket) {
+            const newSimulation = (run: SimulationRun) => {
+                date.current = run.startTime
+                dataRef.current = []
+            }
+
+            const simulationProgress = (id: string, dataPoint: DataPoint) => {
+                dataRef.current.push(dataPoint)
+            }
+
+            socket.on('newSimulation', newSimulation)
+            socket.on('simulationProgress', simulationProgress)
+
+            return () => {
+                socket.off('newSimulation', newSimulation)
+                socket.off('simulationProgress', simulationProgress)
+            }
+        }
+    }, [socket])
 
     const commonOptions = {
         responsive: true,
+        type: 'line',
         plugins: {
             legend: {
                 display: false,
@@ -34,9 +56,11 @@ export const DataCharts = () => {
                 display: false,
                 type: 'realtime',  // Change this
                 realtime: {    // Add this for streaming data
-                    duration: 20000,
-                    refresh: 200,
-                    delay: 0,
+                    duration: 30000,
+                    refresh: 300,
+                    delay: 500,
+                    ttl: 35000,
+                    framerate: 30,
                 },
                 time: {
                     unit: 'millisecond',
@@ -60,17 +84,17 @@ export const DataCharts = () => {
                     onRefresh: function(chart: any) {
                         if (dataRef.current.length > 0) {
                             chart.data.datasets.forEach(function(dataset: any) {
-                                const timeDiff = (new Date(dataRef.current.slice(-1)[0].time).getTime() - new Date(dataRef.current.slice(1)[0].time).getTime())
+                                const timeDiff = (dataRef.current[dataRef.current.length-1].time - dataRef.current[0].time)
                                 const obj = {
                                     x: date.current + timeDiff,
-                                    y: dataRef.current.slice(-1)[0].position.alt,
+                                    y: dataRef.current[dataRef.current.length-1].position.alt,
                                 }
                                 
-                                if (prevAlt.current !== obj.x) {
+                                if (prevHum.current !== obj.x) {
                                     dataset.data.push(obj)
                                 }
         
-                                prevAlt.current = obj.x
+                                prevHum.current = obj.x
                             });
                         }
                     },
@@ -94,12 +118,12 @@ export const DataCharts = () => {
                 realtime: {
                     ...commonOptions.scales.x.realtime,
                     onRefresh: function(chart: any) {
-                        if (dataRef.current.length > 0) {
+                        if (dataRef.current?.length > 0) {
                             chart.data.datasets.forEach(function(dataset: any) {
-                                const timeDiff = (new Date(dataRef.current.slice(-1)[0].time).getTime() - new Date(dataRef.current.slice(1)[0].time).getTime())
+                                const timeDiff = (dataRef.current[dataRef.current.length-1].time - dataRef.current[0].time)
                                 const obj = {
                                     x: date.current + timeDiff,
-                                    y: dataRef.current.slice(-1)[0].atmosphere.temperature - 273.15,
+                                    y: dataRef.current[dataRef.current.length-1].atmosphere.temperature - 273.15,
                                 }
                                 
                                 if (prevTemp.current !== obj.x) {
@@ -133,10 +157,10 @@ export const DataCharts = () => {
                     onRefresh: function(chart: any) {
                         if (dataRef.current.length > 0) {
                             chart.data.datasets.forEach(function(dataset: any) {
-                                const timeDiff = (new Date(dataRef.current.slice(-1)[0].time).getTime() - new Date(dataRef.current.slice(1)[0].time).getTime())
+                                const timeDiff = (dataRef.current[dataRef.current.length-1].time - dataRef.current[0].time)
                                 const obj = {
                                     x: date.current + timeDiff,
-                                    y: dataRef.current.slice(-1)[0].atmosphere.pressure,
+                                    y: dataRef.current[dataRef.current.length-1].atmosphere.pressure,
                                 }
                                 
                                 if (prevPres.current !== obj.x) {
@@ -159,8 +183,119 @@ export const DataCharts = () => {
         },
     }
 
+    const humidityOptions = {
+        ...commonOptions,
+        scales: {
+            ...commonOptions.scales,
+            x: {
+                ...commonOptions.scales.x,
+                realtime: {
+                    ...commonOptions.scales.x.realtime,
+                    onRefresh: function(chart: any) {
+                        if (dataRef.current.length > 0) {
+                            chart.data.datasets.forEach(function(dataset: any) {
+                                const timeDiff = (dataRef.current[dataRef.current.length-1].time - dataRef.current[0].time)
+                                const obj = {
+                                    x: date.current + timeDiff,
+                                    y: dataRef.current[dataRef.current.length-1].atmosphere.rh,
+                                }
+                                
+                                if (prevAlt.current !== obj.x) {
+                                    dataset.data.push(obj)
+                                }
+        
+                                prevAlt.current = obj.x
+                            });
+                        }
+                    },
+                }
+            },
+            y: {
+                ...commonOptions.scales.y,
+                title: {
+                    display: true,
+                    text: 'Humidity (RH%)',
+                },
+            },
+        },
+    }
+
+    const velocityOptions = {
+        ...commonOptions,
+        scales: {
+            ...commonOptions.scales,
+            x: {
+                ...commonOptions.scales.x,
+                realtime: {
+                    ...commonOptions.scales.x.realtime,
+                    onRefresh: function(chart: any) {
+                        if (dataRef.current.length > 0) {
+                            chart.data.datasets.forEach(function(dataset: any) {
+                                const timeDiff = (dataRef.current[dataRef.current.length-1].time - dataRef.current[0].time)
+                                const obj = {
+                                    x: date.current + timeDiff,
+                                    y: dataRef.current[dataRef.current.length-1].velocity,
+                                }
+                                
+                                if (prevVel.current !== obj.x) {
+                                    dataset.data.push(obj)
+                                }
+        
+                                prevVel.current = obj.x
+                            });
+                        }
+                    },
+                }
+            },
+            y: {
+                ...commonOptions.scales.y,
+                title: {
+                    display: true,
+                    text: 'V. Velocity (m/s)',
+                },
+            },
+        },
+    }
+
+    const hVelocityOptions = {
+        ...commonOptions,
+        scales: {
+            ...commonOptions.scales,
+            x: {
+                ...commonOptions.scales.x,
+                realtime: {
+                    ...commonOptions.scales.x.realtime,
+                    onRefresh: function(chart: any) {
+                        if (dataRef.current.length > 0) {
+                            chart.data.datasets.forEach(function(dataset: any) {
+                                const timeDiff = (dataRef.current[dataRef.current.length-1].time - dataRef.current[0].time)
+                                const obj = {
+                                    x: date.current + timeDiff,
+                                    y: dataRef.current[dataRef.current.length-1].hVelocity,
+                                }
+                                
+                                if (prevHvel.current !== obj.x) {
+                                    dataset.data.push(obj)
+                                }
+        
+                                prevHvel.current = obj.x
+                            });
+                        }
+                    },
+                }
+            },
+            y: {
+                ...commonOptions.scales.y,
+                title: {
+                    display: true,
+                    text: 'H. Velocity (m/s)',
+                },
+            },
+        },
+    }
+
     return (
-        <div className="bg-background space-y-4 h-full p-4 overflow-y-auto min-w-[300px]">
+        <ScrollArea className="space-y-2 p-2 overflow-y-auto flex flex-col bg-slate-100 flex-grow max-h-[calc(100vh-2.5rem)]">
             <Card className='p-2'> 
                 <Line // @ts-ignore
                     options={altitudeOptions} 
@@ -168,6 +303,8 @@ export const DataCharts = () => {
                             datasets: [{
                                 backgroundColor: 'rgba(255, 99, 132, 0.5)',
                                 borderColor: 'rgb(255, 99, 132)',
+                                fill: false,
+                                pointRadius: 0, 
                                 data: []
                             }]
                         }} 
@@ -180,9 +317,12 @@ export const DataCharts = () => {
                         datasets: [{
                             backgroundColor: 'rgba(255, 99, 132, 0.5)',
                             borderColor: 'rgb(255, 99, 132)',
+                            fill: false,
+                            pointRadius: 0, 
                             data: []
                         }]
-                    }} 
+                    }}
+                
                 />
             </Card>
             <Card className='p-2'>
@@ -192,11 +332,55 @@ export const DataCharts = () => {
                             datasets: [{
                                 backgroundColor: 'rgba(255, 99, 132, 0.5)',
                                 borderColor: 'rgb(255, 99, 132)',
+                                fill: false,
+                                pointRadius: 0, 
                                 data: []
                             }]
                         }} 
                 />
             </Card>
-        </div>
+            <Card className='p-2'>
+                <Line // @ts-ignore
+                    options={humidityOptions} 
+                    data={{
+                            datasets: [{
+                                backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                                borderColor: 'rgb(255, 99, 132)',
+                                fill: false,
+                                pointRadius: 0, 
+                                data: []
+                            }]
+                        }} 
+                />
+            </Card>
+            <Card className='p-2'>
+                <Line // @ts-ignore
+                    options={velocityOptions} 
+                    data={{
+                            datasets: [{
+                                backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                                borderColor: 'rgb(255, 99, 132)',
+                                fill: false,
+                                pointRadius: 0, 
+                                data: []
+                            }]
+                        }} 
+                />
+            </Card>
+            <Card className='p-2'>
+                <Line // @ts-ignore
+                    options={hVelocityOptions} 
+                    data={{
+                            datasets: [{
+                                backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                                borderColor: 'rgb(255, 99, 132)',
+                                fill: false,
+                                pointRadius: 0, 
+                                data: []
+                            }]
+                        }} 
+                />
+            </Card>
+        </ScrollArea>
     )
 }

@@ -1,11 +1,11 @@
 import { useEffect, useState, useRef } from 'react'
-import Map, { Source, useMap } from 'react-map-gl'
+import Map, { Layer, Source, useMap } from 'react-map-gl'
 import DeckGL from '@deck.gl/react/typed'
 import { LineLayer, PointCloudLayer, IconLayer } from '@deck.gl/layers/typed'
-import type { SkyLayer } from 'react-map-gl'
+import type { SkyLayer, Fog } from 'react-map-gl'
 import mapPinPng from './assets/pin2.png'
 import selectPng from './assets/select2.png'
-import { DataPoint, PredictionGroup, useDataStore, useStore } from './StateStore'
+import { DataPoint, PredictionGroup, useStore } from './StateStore'
 import { INITIAL_VIEW_STATE } from './StateStore'
 import { socket } from './socket'
 
@@ -17,7 +17,8 @@ const skyLayer: SkyLayer = {
     type: 'sky',
     paint: {
         'sky-type': 'atmosphere',
-        'sky-atmosphere-sun': [0.0, 0.0],
+        "sky-atmosphere-color": "#d6f4ff",
+        'sky-atmosphere-sun': [45.0, 2.0],
         'sky-atmosphere-sun-intensity': 15,
     },
 }
@@ -32,18 +33,16 @@ export function DeckMap() {
         state.setPredictionGroups,
     ])
 
-    const addDataPoint = useDataStore((state: any) => state.addDataPoint)
 
     useEffect(() => {
         // Assuming yourSocket is the instance created in the previous step
         if (socket) {
-            const simulationProgress = (simProg: DataPoint) => {
+            const simulationProgress = (id: string, data: DataPoint) => {
                 updateMarkerPosition([
-                    simProg.position.lng,
-                    simProg.position.lat,
-                    simProg.position.alt,
+                    data.position.lng,
+                    data.position.lat,
+                    data.position.alt,
                 ])
-                addDataPoint(simProg)
             }
 
             const updatePredictionGroups = (predictions: PredictionGroup[]) => {
@@ -220,6 +219,11 @@ export function DeckMap() {
                         source: 'mapbox-dem',
                         exaggeration: 1.0,
                     }}
+                    fog={{
+                        range: [0.8, 20],
+                        color: "#d6f4ff",
+                        "horizon-blend": 0.04,
+                    }}
                 >
                     <Source
                         id="mapbox-dem"
@@ -228,7 +232,8 @@ export function DeckMap() {
                         tileSize={512}
                         maxzoom={14}
                     />
-                    {/* <Layer {...skyLayer} /> */}
+                    <Layer {...skyLayer} />
+                    
                 </Map>
             </DeckGL>
         </div>

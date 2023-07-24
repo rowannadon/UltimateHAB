@@ -23,21 +23,12 @@ import { InputForm } from './InputForm'
 import {PredictorFormSchema} from './StateStore'
 import { Color, ColorConverter, mapRange } from './util'
 import {
-    MapPoint3D,
-    Prediction,
-    PredictionApiRequest,
-    PredictionApiRequestResponse,
-    PredictionApiResponse,
     PredictionGroup,
-    Segment,
     useStore,
 } from './StateStore'
-import { ScrollArea } from './components/ui/scroll-area'
 import {
     Dialog,
     DialogContent,
-    DialogDescription,
-    DialogHeader,
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog'
@@ -48,15 +39,11 @@ import {
     AccordionTrigger,
 } from '@radix-ui/react-accordion'
 import { Separator } from './components/ui/separator'
-import distance from '@turf/distance'
 import { Progress } from './components/ui/progress'
-import { point } from '@turf/turf'
 import { socket } from './socket'
 import { Popover, PopoverTrigger } from './components/ui/popover'
 import { PopoverContent } from '@radix-ui/react-popover'
 import { SimulationForm, SimulationFormSchema } from './SimulationForm'
-
-
 
 export const Predict = (props: any) => {
     const [loadingPrediction, setLoadingPrediction] = useState(false)
@@ -75,7 +62,7 @@ export const Predict = (props: any) => {
     const [singleOpen, setSingleOpen] = useState(false)
     const [predictionProgress, setPredictionProgress] = useState(0)
     const [errorMessage, setErrorMessage] = useState('')
-    const [simulationRunning, setSimulationRunning] = useState<boolean>()
+    const [simulationRunning, setSimulationRunning] = useState(false)
 
     async function onSubmit(data: z.infer<typeof PredictorFormSchema>) {
         socket.emit('makePrediction', data)
@@ -96,7 +83,7 @@ export const Predict = (props: any) => {
                 setPredictionProgress(0)
             }
 
-            const predictionFinished = (group: PredictionGroup) => {
+            const newPrediction = (group: PredictionGroup) => {
                 console.log(group)
                 addPredictionGroup(group)
                 setLoadingPrediction(false)
@@ -105,17 +92,20 @@ export const Predict = (props: any) => {
                 setMultiOpen(false)
             }
 
+            const endSimulation = () => {
+                setSimulationRunning(false)
+            }
+
             socket.on('predictionProgress', updatePredictionProgress)
             socket.on('predictionError', updatePredictionError)
-            socket.on('predictionFinished', predictionFinished)
-            socket.on('endSimulation', () => {
-                setSimulationRunning(false)
-            })
+            socket.on('newPrediction', newPrediction)
+            socket.on('endSimulation', endSimulation)
 
             return () => {
                 socket.off('predictionProgress', updatePredictionProgress)
                 socket.off('predictionError', updatePredictionError)
-                socket.off('predictionFinished', predictionFinished)
+                socket.off('newPrediction', newPrediction)
+                socket.off('endSimulation', endSimulation)
             }
         }
     }, [socket])
@@ -189,7 +179,6 @@ export const Predict = (props: any) => {
                             onClick={(e) => {
                                 e.preventDefault()
                                 setSimulationMenuOpen(!props.open)
-                                
                             }}
                         >
                             <BarChart className='w-5 y-5' />
@@ -199,7 +188,7 @@ export const Predict = (props: any) => {
                         <Card >
                             <SimulationForm onSubmit={(data: z.infer<typeof SimulationFormSchema>) => {
                                 if (!simulationRunning) {
-                                    socket.emit('startSimulation', props.id, data.minutes)
+                                    socket.emit('startSimulation', props.id, data.minutes, Date.now())
                                     setSimulationRunning(true)
                                 }
                             }} loading={simulationRunning} />
@@ -225,11 +214,6 @@ export const Predict = (props: any) => {
                                     }}
                                     className="w-8 p-0 h-8"
                                 >
-                                    {/* {props.visible ? (
-                                        <Eye className="h-5 w-5" />
-                                    ) : (
-                                        <EyeOff className="w-5 h-5" />
-                                    )} */}
                                 </Card>
                             </div>
                             <div className="w-full p-2">
@@ -292,7 +276,7 @@ export const Predict = (props: any) => {
     }
 
     return (
-        <div className="flex flex-col space-y-2 p-2 bg-slate-100 flex-grow">
+        <div className="flex flex-col space-y-2 p-2 bg-slate-100 flex-grow h-[calc(100vh-2.5rem)]">
             <Card className="flex flex-row p-2 justify-between">
                 <div className="space-x-2">
                     <Dialog open={singleOpen} onOpenChange={setSingleOpen}>
@@ -339,7 +323,7 @@ export const Predict = (props: any) => {
                     </Button>
                 </div>
             </Card>
-            <Card className="flex flex-grow flex-col space-y-2 p-2 max-h-[calc(100vh-7.5rem)] overflow-y-auto">
+            <Card className="flex flex-grow flex-col space-y-2 p-2 overflow-y-auto">
                 <Accordion
                     type="single"
                     collapsible

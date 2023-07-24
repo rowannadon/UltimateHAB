@@ -4,7 +4,6 @@ import { Point } from 'mapbox-gl'
 import * as z from 'zod'
 import {produce} from 'immer';
 
-
 export interface MapPoint3D {
     lng: number,
     lat: number,
@@ -149,9 +148,11 @@ export const useStore = create((set) => ({
 
 export interface DataPoint {
     id: string
-    time: string
+    time: number
     position: MapPoint3D
     atmosphere: AtmosphereData
+    velocity: number
+    hVelocity: number
 }
 
 export interface AtmosphereData {
@@ -160,27 +161,40 @@ export interface AtmosphereData {
     pressure: number
     viscosity: number
     ssound: number
+    rh: number
 }
 
-export type DataStoreState = {
-    data: any[];
-    addDataPoint: (dataPoint: DataPoint) => void;
-    emptyDataPoints: () => any;
-  };
-  
+// export type DataStoreState = {
+//     startTime: number,
+//     setStartTime: (time: number) => void
+//     data: any[];
+//     addDataPoint: (dataPoint: DataPoint) => void
+//     setDataPoints: (dataPoints: DataPoint[]) => void
+// };
 
-export const useDataStore = create<DataStoreState>((set, get) => ({
-    data: [],
-    addDataPoint: (dataPoint: DataPoint) => {
-        set((state: any) => ({
-            data: [...state.data, dataPoint],
-        }))
-    },
-    emptyDataPoints: () => {
-        const { data } = get();
-        set((state: any) => ({
-            data: [],
-        }))
-        return data
-    }
-}))
+export interface SimulationRun {
+    dataPoints: DataPoint[]
+    waitTimes: number[]
+    id: string
+    startTime: number
+}
+
+// export const useDataStore = create<DataStoreState>((set, get) => ({
+//     startTime: 0,
+//     setStartTime: (time: number) => {
+//         set((state: any) => ({
+//             startTime: time,
+//         }))
+//     },
+//     data: <DataPoint[]>[],
+//     addDataPoint: (dataPoint: DataPoint) => {
+//         set((state: any) => ({
+//             data: [...state.data, dataPoint],
+//         }))
+//     },
+//     setDataPoints: (dataPoints: DataPoint[]) => {
+//         set((state: any) => ({
+//             data: dataPoints,
+//         }))
+//     }
+// }))
