@@ -80,12 +80,12 @@ export const Flight = (props: any) => {
                     />
                 ))}
             </Card>
-            <Card className='p-2'>
+            <Card className='p-2 space-y-2'>
                 <Card className="w-full aspect-video">
 
                 </Card>
                 <div className="flex flex-row items-center">
-                    <Progress value={33} className="mr-2" />
+                    <Progress value={0} className="mr-2" />
                     <Button variant="ghost" className="w-9 p-0 h-9">
                         <Camera className="h-5 w-5" />
                     </Button>

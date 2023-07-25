@@ -124,7 +124,7 @@ export function DeckMap() {
                 p.startPoint.lat,
                 p.startPoint.alt,
             ],
-            getSize: () => 4,
+            getSize: () => 3,
             iconAtlas: mapPinPng,
             iconMapping: {
                 marker: {
@@ -154,7 +154,7 @@ export function DeckMap() {
                 p.endPoint.lat,
                 p.endPoint.alt,
             ],
-            getSize: () => 4,
+            getSize: () => 3,
             iconAtlas: mapPinPng,
             iconMapping: {
                 marker: {
@@ -180,7 +180,7 @@ export function DeckMap() {
             getColor: (d) => [200, 50, 50],
             getIcon: (d) => 'marker', // @ts-ignore
             getPosition: (d) => markerPosition,
-            getSize: (d) => 3,
+            getSize: (d) => 2,
             iconAtlas: selectPng,
             iconMapping: {
                 marker: {
