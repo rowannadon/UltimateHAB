@@ -54,6 +54,9 @@ export const Flight = (props: any) => {
                 <p>
                     {props.data.id.slice(0, 8)}
                 </p>
+                <p>
+                    {props.data.multiple}x
+                </p>
                 <div className="flex flex-row space-x-2">
                     <Button
                         variant="outline"

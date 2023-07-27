@@ -23,7 +23,7 @@ import {
     PopoverTrigger,
 } from '@/components/ui/popover'
 import { DateTimePicker } from '@/components/ui/date-time-picker/date-time-picker'
-import { useStore } from './StateStore'
+import { useMarkerStore } from './StateStore'
 import {
     Select,
     SelectContent,
@@ -66,7 +66,7 @@ export function DatePicker() {
 }
 
 export function InputForm(props: any) {
-    const markerPosition = useStore((state: any) => state.markerPosition)
+    const markerPosition = useMarkerStore((state: any) => state.markerPosition)
     const isMulti = props.type === 'multi'
     const [selectedDate, setSelectedDate] = useState<CalendarDateTime>()
     const [timeZone, setTimeZone] = useState('America/Denver')
@@ -106,7 +106,7 @@ export function InputForm(props: any) {
     })
 
     useEffect(() => {
-        const markerPosSub = useStore.subscribe((state: any) => {
+        const markerPosSub = useMarkerStore.subscribe((state: any) => {
             form.setValue(
                 'launch_latitude',
                 parseFloat(state.markerPosition[1]).toFixed(4),

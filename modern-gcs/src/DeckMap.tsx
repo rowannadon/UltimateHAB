@@ -5,12 +5,12 @@ import { LineLayer, PointCloudLayer, IconLayer } from '@deck.gl/layers/typed'
 import type { SkyLayer, Fog } from 'react-map-gl'
 import mapPinPng from './assets/pin2.png'
 import selectPng from './assets/select2.png'
-import { DataPoint, PredictionGroup, useStore } from './StateStore'
+import { DataPoint, PredictionGroup, useMarkerStore, useStore } from './StateStore'
 import { INITIAL_VIEW_STATE } from './StateStore'
 import { socket } from './socket'
 
 const TOKEN =
-    'pk.eyJ1Ijoicm5hZG9uIiwiYSI6ImNsanFsMmQ0MTA2b3MzZHJzYmtva3ZibTYifQ.LHUT3prMZ0y-zlrnhO307Q' // Set your mapbox token here
+    '' // Set your mapbox token here
 
 const skyLayer: SkyLayer = {
     id: 'sky',
@@ -26,13 +26,15 @@ const skyLayer: SkyLayer = {
 export function DeckMap() {
     const [viewState, setViewState] = useState(INITIAL_VIEW_STATE)
     const { mainMap } = useMap()
-    const [markerPosition, updateMarkerPosition] = useStore((state: any) => [state.markerPosition, state.updateMarkerPosition])
+    const [markerPosition, updateMarkerPosition] = useMarkerStore((state: any) => [
+        state.markerPosition, 
+        state.updateMarkerPosition
+    ])
 
     const [predictionGroups, setPredictionGroups] = useStore((state: any) => [
         state.predictionGroups,
         state.setPredictionGroups,
     ])
-
 
     useEffect(() => {
         // Assuming yourSocket is the instance created in the previous step

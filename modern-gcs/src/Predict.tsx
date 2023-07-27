@@ -44,6 +44,7 @@ import { socket } from './socket'
 import { Popover, PopoverTrigger } from './components/ui/popover'
 import { PopoverContent } from '@radix-ui/react-popover'
 import { SimulationForm, SimulationFormSchema } from './SimulationForm'
+import { PredictionUIElement } from './PredictionUIElement'
 
 export const Predict = (props: any) => {
     const [loadingPrediction, setLoadingPrediction] = useState(false)
@@ -69,6 +70,18 @@ export const Predict = (props: any) => {
         setLoadingPrediction(true)
         setErrorMessage('')
     }
+
+    useEffect(() => {
+        if (predictionGroups.length > 0) {
+            console.log('saving groups...')
+            socket.emit('updatePredictions', predictionGroups)
+        }
+    }, [predictionGroups])
+
+    useEffect(() => {
+        console.log('getting groups')
+        socket.emit('getAllPredictions')
+    }, [])
 
     useEffect(() => {
         if (socket) {
@@ -109,171 +122,6 @@ export const Predict = (props: any) => {
             }
         }
     }, [socket])
-
-    const PredictionGroupElement = (props: any) => {
-        const [simulationMenuOpen, setSimulationMenuOpen] = useState<boolean>()
-
-        const predictionElements = props.data.predictions.map(
-            (pred: any, index: any) => {
-                const date = new Date(Date.parse(pred.request.launch_datetime))
-
-                return (
-                    <div
-                        key={pred.id}
-                        className="pl-2 pr-2 min-w-[200px] flex flex-col justify-center"
-                    >
-                        {index > 0 && <Separator className="mb-1" />}
-                        <p className="text-sm">{`${date.toDateString()}, ${date.toLocaleTimeString()}`}</p>
-                        <div className="flex flex-row flex-wrap space-x-4 text-[10px] text-slate-500">
-                            <p>
-                                {'['}
-                                {parseFloat(
-                                    pred.request.launch_latitude,
-                                ).toFixed(2)}
-                                ,{' '}
-                                {(
-                                    parseFloat(pred.request.launch_longitude) -
-                                    360
-                                ).toFixed(2)}
-                                {']'}
-                            </p>
-                            <p className="flex flex-row items-center">
-                                {parseFloat(
-                                    pred.request.launch_altitude,
-                                ).toFixed(0)}{' '}
-                                <ArrowRight className="w-3 h-3" />{' '}
-                                {parseFloat(
-                                    pred.request.burst_altitude,
-                                ).toFixed(0)}{' '}
-                                m
-                            </p>
-                            <div className="flex flex-row items-center space-x-2">
-                                <div className="flex flex-row items-center">
-                                    <ArrowUp className="w-3 h-3" />
-                                    {parseFloat(
-                                        pred.request.ascent_rate,
-                                    ).toFixed(1)}{' '}
-                                    m/s
-                                </div>
-                                <div className="flex flex-row items-center">
-                                    <ArrowDown className="w-3 h-3" />
-                                    {parseFloat(
-                                        pred.request.descent_rate,
-                                    ).toFixed(1)}{' '}
-                                    m/s
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )
-            },
-        )
-
-        const SimulationMenu = (props : any) => {
-            return (
-                <Popover open={props.open} >
-                    <PopoverTrigger asChild >
-                        <Button
-                            variant="outline"
-                            className="w-9 p-0 h-9"
-                            onClick={(e) => {
-                                e.preventDefault()
-                                setSimulationMenuOpen(!props.open)
-                            }}
-                        >
-                            <BarChart className='w-5 y-5' />
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className='-mt-1'>
-                        <Card >
-                            <SimulationForm onSubmit={(data: z.infer<typeof SimulationFormSchema>) => {
-                                if (!simulationRunning) {
-                                    socket.emit('startSimulation', props.id, data.minutes, Date.now())
-                                    setSimulationRunning(true)
-                                }
-                            }} loading={simulationRunning} />
-                        </Card>
-                        
-                    </PopoverContent>
-                </Popover >
-            )
-        }
-
-        return (
-            <AccordionItem value={props.data.id} className="w-full">
-                <AccordionTrigger className="w-full" asChild>
-                    <Card className="hover:cursor-pointer hover:bg-slate-50">
-                        <div
-                            className="flex min-w-[30px] flex-row rounded-sm justify-between p-2 items-center text-sm"
-                            key={props.text}
-                        >
-                            <div className="flex flex-row space-x-2 items-center">
-                                <Card
-                                    style={{
-                                        backgroundColor: props.color,
-                                    }}
-                                    className="w-8 p-0 h-8"
-                                >
-                                </Card>
-                            </div>
-                            <div className="w-full p-2">
-                                <p>
-                                    {`${props.data.predictions.length}:
-                                      [${
-                                          props.data.minDistance ===
-                                          props.data.maxDistance
-                                              ? props.data.maxDistance.toFixed(
-                                                    1,
-                                                )
-                                              : props.data.maxDistance.toFixed(
-                                                    1,
-                                                ) +
-                                                '-' +
-                                                props.data.minDistance.toFixed(
-                                                    1,
-                                                )
-                                      }] mi`}
-                                </p>
-                            </div>
-                            <div className="flex flex-row space-x-2">
-                                <SimulationMenu open={simulationMenuOpen} id={props.data.id} />
-                                
-                                <Button
-                                    variant="outline"
-                                    className="w-9 p-0 h-9"
-                                    onClick={(e) => {
-                                        e.preventDefault()
-                                        props.toggle()
-                                    }}
-                                >
-                                    {props.visible ? (
-                                        <Eye className="h-5 w-5" />
-                                    ) : (
-                                        <EyeOff className="w-5 h-5" />
-                                    )}
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    className="w-9 p-0 h-9"
-                                    onClick={(e) => {
-                                        e.preventDefault()
-                                        props.delete()
-                                    }}
-                                >
-                                    <Trash className="h-5 w-5" />
-                                </Button>
-                            </div>
-                        </div>
-                    </Card>
-                </AccordionTrigger>
-                <AccordionContent>
-                    <Card className="flex flex-col p-2 rounded-t-none border-t-0 ml-3 mr-3 space-y-2">
-                        {predictionElements}
-                    </Card>
-                </AccordionContent>
-            </AccordionItem>
-        )
-    }
 
     return (
         <div className="flex flex-col space-y-2 p-2 bg-slate-100 flex-grow h-[calc(100vh-2.5rem)]">
@@ -330,11 +178,13 @@ export const Predict = (props: any) => {
                     className="w-full space-y-2"
                 >
                     {predictionGroups.map((predictionGroup: any) => (
-                        <PredictionGroupElement
+                        <PredictionUIElement
                             data={predictionGroup}
                             visible={predictionGroup.visible}
                             key={predictionGroup.id}
                             color={ColorConverter.toHex(predictionGroup.color)}
+                            setSimulationRunning={setSimulationRunning}
+                            simulationRunning={simulationRunning}
                             toggle={() =>
                                 togglePredictionGroupVisibility(
                                     predictionGroup.id,

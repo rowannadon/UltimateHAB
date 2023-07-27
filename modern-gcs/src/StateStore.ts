@@ -2,7 +2,6 @@ import { create } from 'zustand'
 import { Color } from './util'
 import { Point } from 'mapbox-gl'
 import * as z from 'zod'
-import {produce} from 'immer';
 
 export interface MapPoint3D {
     lng: number,
@@ -83,6 +82,35 @@ export const INITIAL_VIEW_STATE = {
     maxZoom: 23,
 }
 
+export interface DataPoint {
+    id: string
+    time: number
+    oldTime: number
+    position: MapPoint3D
+    atmosphere: AtmosphereData
+    velocity: number
+    hVelocity: number
+    voltage: number
+}
+
+export interface AtmosphereData {
+    temperature: number
+    density: number
+    pressure: number
+    viscosity: number
+    ssound: number
+    rh: number
+}
+
+export interface SimulationRun {
+    dataPoints: DataPoint[]
+    waitTimes: number[]
+    id: string
+    startTime: number
+    multiple: string
+}
+
+
 export const PredictorFormSchema = z.object({
     launch_latitude: z.string().refine((val) => !Number.isNaN(parseFloat(val))),
     launch_longitude: z
@@ -105,9 +133,12 @@ export const PredictorFormSchema = z.object({
         .refine((val) => !Number.isNaN(parseFloat(val))),
 })
 
-export const useStore = create((set) => ({
+export const useMarkerStore = create((set) => ({
     markerPosition: [INITIAL_VIEW_STATE.longitude, INITIAL_VIEW_STATE.latitude, 0],
     updateMarkerPosition: (pos: any) => set(() => ({ markerPosition: pos })),
+}))
+
+export const useStore = create((set) => ({
     predictionGroups: [],
     setPredictionGroups: (predictionGroups: any) => {
         set((state: any) => ({
@@ -145,56 +176,3 @@ export const useStore = create((set) => ({
             }),
         })),
 }))
-
-export interface DataPoint {
-    id: string
-    time: number
-    position: MapPoint3D
-    atmosphere: AtmosphereData
-    velocity: number
-    hVelocity: number
-}
-
-export interface AtmosphereData {
-    temperature: number
-    density: number
-    pressure: number
-    viscosity: number
-    ssound: number
-    rh: number
-}
-
-// export type DataStoreState = {
-//     startTime: number,
-//     setStartTime: (time: number) => void
-//     data: any[];
-//     addDataPoint: (dataPoint: DataPoint) => void
-//     setDataPoints: (dataPoints: DataPoint[]) => void
-// };
-
-export interface SimulationRun {
-    dataPoints: DataPoint[]
-    waitTimes: number[]
-    id: string
-    startTime: number
-}
-
-// export const useDataStore = create<DataStoreState>((set, get) => ({
-//     startTime: 0,
-//     setStartTime: (time: number) => {
-//         set((state: any) => ({
-//             startTime: time,
-//         }))
-//     },
-//     data: <DataPoint[]>[],
-//     addDataPoint: (dataPoint: DataPoint) => {
-//         set((state: any) => ({
-//             data: [...state.data, dataPoint],
-//         }))
-//     },
-//     setDataPoints: (dataPoints: DataPoint[]) => {
-//         set((state: any) => ({
-//             data: dataPoints,
-//         }))
-//     }
-// }))

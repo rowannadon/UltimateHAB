@@ -18,23 +18,31 @@ export const DataCharts = () => {
     const prevHum = useRef(0)
     const prevVel = useRef(0)
     const prevHvel = useRef(0)
+    const prevVol = useRef(0)
 
     const date = useRef(0)
     const dataRef = useRef<DataPoint[]>([])
 
     useEffect(() => {
+        date.current = Date.now() + 1800
+        dataRef.current = []
+    })
+
+    useEffect(() => {
         if (socket) {
+            console.log('adding listeners')
             const newSimulation = (run: SimulationRun) => {
-                date.current = run.startTime
+                date.current = run.startTime + 300
                 dataRef.current = []
             }
 
             const simulationProgress = (id: string, dataPoint: DataPoint) => {
                 dataRef.current.push(dataPoint)
+                console.log('receiving packet')
             }
 
             socket.on('newSimulation', newSimulation)
-            socket.on('simulationProgress', simulationProgress)
+            console.log(socket.on('simulationProgress', simulationProgress))
 
             return () => {
                 socket.off('newSimulation', newSimulation)
@@ -57,8 +65,8 @@ export const DataCharts = () => {
                 type: 'realtime',  // Change this
                 realtime: {    // Add this for streaming data
                     duration: 30000,
-                    refresh: 300,
-                    delay: 500,
+                    refresh: 200,
+                    delay: 0,
                     ttl: 35000,
                     framerate: 30,
                 },
@@ -82,7 +90,7 @@ export const DataCharts = () => {
                 realtime: {
                     ...commonOptions.scales.x.realtime,
                     onRefresh: function(chart: any) {
-                        if (dataRef.current.length > 0) {
+                        if (dataRef.current.length > 1) {
                             chart.data.datasets.forEach(function(dataset: any) {
                                 const timeDiff = (dataRef.current[dataRef.current.length-1].time - dataRef.current[0].time)
                                 const obj = {
@@ -118,7 +126,7 @@ export const DataCharts = () => {
                 realtime: {
                     ...commonOptions.scales.x.realtime,
                     onRefresh: function(chart: any) {
-                        if (dataRef.current?.length > 0) {
+                        if (dataRef.current?.length > 1) {
                             chart.data.datasets.forEach(function(dataset: any) {
                                 const timeDiff = (dataRef.current[dataRef.current.length-1].time - dataRef.current[0].time)
                                 const obj = {
@@ -155,7 +163,7 @@ export const DataCharts = () => {
                 realtime: {
                     ...commonOptions.scales.x.realtime,
                     onRefresh: function(chart: any) {
-                        if (dataRef.current.length > 0) {
+                        if (dataRef.current.length > 1) {
                             chart.data.datasets.forEach(function(dataset: any) {
                                 const timeDiff = (dataRef.current[dataRef.current.length-1].time - dataRef.current[0].time)
                                 const obj = {
@@ -192,7 +200,7 @@ export const DataCharts = () => {
                 realtime: {
                     ...commonOptions.scales.x.realtime,
                     onRefresh: function(chart: any) {
-                        if (dataRef.current.length > 0) {
+                        if (dataRef.current.length > 1) {
                             chart.data.datasets.forEach(function(dataset: any) {
                                 const timeDiff = (dataRef.current[dataRef.current.length-1].time - dataRef.current[0].time)
                                 const obj = {
@@ -229,7 +237,7 @@ export const DataCharts = () => {
                 realtime: {
                     ...commonOptions.scales.x.realtime,
                     onRefresh: function(chart: any) {
-                        if (dataRef.current.length > 0) {
+                        if (dataRef.current.length > 1) {
                             chart.data.datasets.forEach(function(dataset: any) {
                                 const timeDiff = (dataRef.current[dataRef.current.length-1].time - dataRef.current[0].time)
                                 const obj = {
@@ -266,7 +274,7 @@ export const DataCharts = () => {
                 realtime: {
                     ...commonOptions.scales.x.realtime,
                     onRefresh: function(chart: any) {
-                        if (dataRef.current.length > 0) {
+                        if (dataRef.current.length > 1) {
                             chart.data.datasets.forEach(function(dataset: any) {
                                 const timeDiff = (dataRef.current[dataRef.current.length-1].time - dataRef.current[0].time)
                                 const obj = {
@@ -294,6 +302,43 @@ export const DataCharts = () => {
         },
     }
 
+    const voltageOptions = {
+        ...commonOptions,
+        scales: {
+            ...commonOptions.scales,
+            x: {
+                ...commonOptions.scales.x,
+                realtime: {
+                    ...commonOptions.scales.x.realtime,
+                    onRefresh: function(chart: any) {
+                        if (dataRef.current.length > 1) {
+                            chart.data.datasets.forEach(function(dataset: any) {
+                                const timeDiff = (dataRef.current[dataRef.current.length-1].time - dataRef.current[0].time)
+                                const obj = {
+                                    x: date.current + timeDiff,
+                                    y: dataRef.current[dataRef.current.length-1].voltage,
+                                }
+                                
+                                if (prevVol.current !== obj.x) {
+                                    dataset.data.push(obj)
+                                }
+        
+                                prevVol.current = obj.x
+                            });
+                        }
+                    },
+                }
+            },
+            y: {
+                ...commonOptions.scales.y,
+                title: {
+                    display: true,
+                    text: 'Voltage (V)',
+                },
+            },
+        },
+    }
+
     return (
         <ScrollArea className="space-y-2 p-2 overflow-y-auto flex flex-col bg-slate-100 flex-grow max-h-[calc(100vh-2.5rem)]">
             <Card className='p-2'> 
@@ -305,6 +350,7 @@ export const DataCharts = () => {
                                 borderColor: 'rgb(255, 99, 132)',
                                 fill: false,
                                 pointRadius: 0, 
+                                borderWidth: 2,
                                 data: []
                             }]
                         }} 
@@ -319,6 +365,7 @@ export const DataCharts = () => {
                             borderColor: 'rgb(255, 99, 132)',
                             fill: false,
                             pointRadius: 0, 
+                            borderWidth: 2,
                             data: []
                         }]
                     }}
@@ -334,6 +381,7 @@ export const DataCharts = () => {
                                 borderColor: 'rgb(255, 99, 132)',
                                 fill: false,
                                 pointRadius: 0, 
+                                borderWidth: 2,
                                 data: []
                             }]
                         }} 
@@ -348,6 +396,7 @@ export const DataCharts = () => {
                                 borderColor: 'rgb(255, 99, 132)',
                                 fill: false,
                                 pointRadius: 0, 
+                                borderWidth: 2,
                                 data: []
                             }]
                         }} 
@@ -362,6 +411,7 @@ export const DataCharts = () => {
                                 borderColor: 'rgb(255, 99, 132)',
                                 fill: false,
                                 pointRadius: 0, 
+                                borderWidth: 2,
                                 data: []
                             }]
                         }} 
@@ -376,6 +426,22 @@ export const DataCharts = () => {
                                 borderColor: 'rgb(255, 99, 132)',
                                 fill: false,
                                 pointRadius: 0, 
+                                borderWidth: 2,
+                                data: []
+                            }]
+                        }} 
+                />
+            </Card>
+            <Card className='p-2'>
+                <Line // @ts-ignore
+                    options={voltageOptions} 
+                    data={{
+                            datasets: [{
+                                backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                                borderColor: 'rgb(255, 99, 132)',
+                                fill: false,
+                                pointRadius: 0, 
+                                borderWidth: 2,
                                 data: []
                             }]
                         }} 
