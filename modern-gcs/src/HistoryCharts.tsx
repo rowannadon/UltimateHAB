@@ -225,12 +225,13 @@ export const HistoryCharts = () => {
                     </SelectContent>
                 </Select>
                 <Button variant="outline" className="w-14 h-9 p-0" onClick={() => {
-                    if (currentSimulation) {
-                        console.log(currentSimulation)
-                        socket.emit('deleteSimulation', currentSimulation)
-                        setCurrentDataset(undefined)
-                        socket.emit('getAllSimulations')
-                    }
+                    console.log(currentSimulation)
+                    socket.emit('deleteSimulation', currentSimulation)
+
+                    setDatasets(prev => prev.filter(s => s.id != currentSimulation))
+                    setCurrentSimulation('')
+                    socket.emit('getAllSimulations')
+                    setCurrentDataset([])
                 }}>
                     <Trash />
                 </Button>
@@ -244,7 +245,7 @@ export const HistoryCharts = () => {
                 </Button>
             </Card>
             
-            {currentDataset && <div className='space-y-2'>
+            {currentDataset && currentDataset.length > 0 && <div className='space-y-2'>
                 <Card className='p-2'> 
                     <Line // @ts-ignore
                         options={altitudeOptions} 

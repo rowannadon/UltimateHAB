@@ -24,15 +24,19 @@ export const DataCharts = () => {
     const dataRef = useRef<DataPoint[]>([])
 
     useEffect(() => {
-        date.current = Date.now() + 1800
+        date.current = Date.now()
         dataRef.current = []
     })
+
+    useEffect(() => {
+        date.current = Date.now() + 1000
+    }, [dataRef.current])
 
     useEffect(() => {
         if (socket) {
             console.log('adding listeners')
             const newSimulation = (run: SimulationRun) => {
-                date.current = run.startTime + 300
+                date.current = run.startTime
                 dataRef.current = []
             }
 
@@ -64,10 +68,10 @@ export const DataCharts = () => {
                 display: false,
                 type: 'realtime',  // Change this
                 realtime: {    // Add this for streaming data
-                    duration: 30000,
-                    refresh: 200,
-                    delay: 0,
-                    ttl: 35000,
+                    duration: 10000,
+                    refresh: 100,
+                    delay: 500,
+                    ttl: 11000,
                     framerate: 30,
                 },
                 time: {
@@ -75,7 +79,7 @@ export const DataCharts = () => {
                 },
             },
             y: {
-                beginAtZero: true,
+                //beginAtZero: true,
             },
         },
         pointStyle: false

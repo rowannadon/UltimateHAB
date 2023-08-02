@@ -47,7 +47,7 @@ function findClosestValue(pairs: any[], target: number): number {
 
 var currentSocket: Socket = null
 
-fs.createReadStream("./battery_curve.csv")
+fs.createReadStream("./batterycurve.csv")
   .pipe(parse({ delimiter: ",", from_line: 2 }))
   .on("data", function (row) {
     batteryInfo.push([parseFloat(row[1]), parseFloat(row[0])])
@@ -221,10 +221,18 @@ io.on('connect', (socket) => {
     })
 
     socket.on('deleteSimulation', async (id: string) => {
-        getSimulationPoints(id).then((items) => {
-            for (var item of items) {
-                db.del(`simPoint${item.id}`)
+        getSimulationPoints(id).then(async (items) => {
+            
+            const keys: string[] = []
+            for await (const [key, value] of db.iterator({ gte: `simPoint${id}`, lte: `simPoint${id}~`})) {
+                // @ts-ignore
+                items.push(key)
             }
+            for (var key of keys) {
+                db.del(key)
+                console.log('deleting', key)
+            }
+            
         })
         db.del(`simRun${id}`)
     })
@@ -293,10 +301,10 @@ io.on('connect', (socket) => {
         startTime: number
     ): Promise<SimulationRun> => {
         const group: any = await db.get(`pGroup${groupId}`)
-        const positions: MapPoint3D[] = group.predictions[0].points
+        const positions: MapPoint3D[] = group.predictions[0].points.slice(0, -1)
         const times: Date[] = group.predictions[0].times.map(
             (timestring: string) => new Date(timestring)
-        )
+        ).slice(0, -1)
         const simulationRunId = uuid()
 
         // Compute the minimum and maximum dates
@@ -314,7 +322,7 @@ io.on('connect', (socket) => {
 
         // calculate time diff between first two points
         const timeDiff = remappedTimes[1] - remappedTimes[0]
-        const numInterpolations = Math.floor(timeDiff / 1000)
+        const numInterpolations = Math.floor(timeDiff / 250)
         var newPositions = positions
         var newTimes = remappedTimes
         var oldTimes = times.map((t) => t.getTime())
@@ -325,8 +333,6 @@ io.on('connect', (socket) => {
             newTimes = []
             oldTimes = []
             for (var i = 0; i < positions.length - 2; i++) {
-                //newPositions.push(positions[i])
-                //newTimes.push(remappedTimes[i])
                 console.log('interpolation', i)
                 var interps = interpolateGeoPoints(
                     positions[i],
@@ -350,19 +356,24 @@ io.on('connect', (socket) => {
         const packets: DataPoint[] = []
         const waitTimes: number[] = []
 
-        const originalCapacity = 3000
+        const originalCapacity = 1000
         var capacityLeft = originalCapacity
+
+        var velocityBuffer = []
+        var hVelocityBuffer = []
         
         for (let i = 0; i < newTimes.length; i++) {
             const position = newPositions[i]
-            position.alt = position.alt + Math.random()*10
+            position.alt = position.alt + Math.random()*1
+            position.lat = position.lat + Math.random() * 0.001
+            position.lng= position.lng + Math.random() * 0.001
             const time = newTimes[i]
             const oldTime = oldTimes[i]
             const waitTime = i === 0 ? 0 : newTimes[i] - newTimes[i - 1]
             const originalWaitTime = i === 0 ? 0 : oldTimes[i] - oldTimes[i-1];
 
             capacityLeft -= (originalWaitTime/10000)
-            const voltage = findClosestValue(batteryInfo, (originalCapacity-capacityLeft)/1000)
+            const voltage = findClosestValue(batteryInfo, (originalCapacity-capacityLeft)/500)
             console.log(capacityLeft, voltage)
 
             const distChange = distance(
@@ -381,24 +392,31 @@ io.on('connect', (socket) => {
             if (originalWaitTime > 0 && Math.abs(altChange) > 0) {
                 velocity = altChange / (originalWaitTime / 1000)
             }
-            if (originalWaitTime > 0 && Math.abs(distChange)) {
+            if (originalWaitTime > 0 && Math.abs(distChange) > 0) {
                 hVelocity = distChange / (originalWaitTime / 1000000)
             }
-            
+
+            hVelocityBuffer.push(hVelocity)
+            if (velocityBuffer.length > 3) {
+                velocityBuffer.shift()
+            }
+
+            velocityBuffer.push(velocity)
+            if (velocityBuffer.length > 3) {
+                velocityBuffer.shift()
+            }
+
             const packet: DataPoint = {
                 id: simulationRunId,
                 time: time,
                 oldTime: oldTime,
                 position: position,
-                velocity: velocity,
-                hVelocity: hVelocity,
+                velocity: velocityBuffer.reduce((partialSum, a) => partialSum + a, 0)/velocityBuffer.length,
+                hVelocity: hVelocityBuffer.reduce((partialSum, a) => partialSum + a, 0)/hVelocityBuffer.length,
                 voltage: voltage,
                 atmosphere: {
                     ...atmosphereParams,
-                    rh: Math.max(
-                        0,
-                        40 - 4 * (position.alt / 1000) + Math.random() * 4
-                    ),
+                    rh: atmosphereParams.pressure/3000 + Math.random() * 4,
                 },
             }
 

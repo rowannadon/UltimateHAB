@@ -23,6 +23,17 @@ const skyLayer: SkyLayer = {
     },
 }
 
+const pointIconMapping = {
+    marker: {
+        x: 0,
+        y: 0,
+        width: 64,
+        height: 101,
+        anchorY: 101,
+        mask: true,
+    },
+}
+
 export function DeckMap() {
     const [viewState, setViewState] = useState(INITIAL_VIEW_STATE)
     const { mainMap } = useMap()
@@ -128,16 +139,7 @@ export function DeckMap() {
             ],
             getSize: () => 3,
             iconAtlas: mapPinPng,
-            iconMapping: {
-                marker: {
-                    x: 0,
-                    y: 0,
-                    width: 344,
-                    height: 545,
-                    anchorY: 545,
-                    mask: true,
-                },
-            },
+            iconMapping: pointIconMapping,
             opacity: 0.8,
             sizeScale: 10,
             visible: p.visible,
@@ -158,16 +160,7 @@ export function DeckMap() {
             ],
             getSize: () => 3,
             iconAtlas: mapPinPng,
-            iconMapping: {
-                marker: {
-                    x: 0,
-                    y: 0,
-                    width: 344,
-                    height: 545,
-                    anchorY: 545,
-                    mask: true,
-                },
-            },
+            iconMapping: pointIconMapping,
             opacity: 0.8,
             sizeScale: 10,
             visible: p.visible,
@@ -188,10 +181,10 @@ export function DeckMap() {
                 marker: {
                     x: 0,
                     y: 0,
-                    width: 483,
-                    height: 483,
-                    anchorY: 241,
-                    anchorX: 241,
+                    width: 128,
+                    height: 128,
+                    anchorY: 64,
+                    anchorX: 64,
                     mask: true,
                 },
             },
