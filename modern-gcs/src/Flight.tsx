@@ -10,6 +10,7 @@ import {
 import { SimulationRun} from './StateStore'
 import { Progress } from './components/ui/progress'
 import { socket } from './socket'
+import { FlightData } from './FlightData'
 
 export const Flight = (props: any) => {
     const [runningSimulations, setRunningSimulations] = useState<SimulationRun[]>([])
@@ -83,6 +84,9 @@ export const Flight = (props: any) => {
                     />
                 ))}
             </Card>
+
+            <FlightData />
+
             <Card className='p-2 space-y-2'>
                 <Card className="w-full aspect-video">
 
