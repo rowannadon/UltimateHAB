@@ -11,6 +11,98 @@ import axios from 'axios'
 import { v4 as uuid } from 'uuid'
 import distance from '@turf/distance'
 import { point } from '@turf/turf'
+import { Socket } from 'socket.io'
+import { db } from './index'
+import { find } from 'geo-tz'
+
+export function setupPrediction(socket: Socket) {
+    // request for time zone
+    socket.on('getTimeZone', (lat, lon) => {
+        socket.emit('timeZone', find(parseFloat(lon), parseFloat(lat)))
+    })
+
+    // create a prediction from input form data, store it
+    socket.on('makePrediction', (data) => {
+        if (
+            parseFloat(data.ascent_rate_range) > 0 ||
+            parseFloat(data.burst_altitude_range) > 0 ||
+            parseFloat(data.descent_rate_range) > 0 ||
+            parseFloat(data.launch_datetime_range) > 0
+        ) {
+            const requests: PredictionApiRequest[] =
+                generateMultiplePredictionRequests(data)
+            makePredictionApiRequests(requests, (progress) =>
+                socket.emit('predictionProgress', progress)
+            )
+                .then((requestResponses) => {
+                    const newGroup: PredictionGroup =
+                        processPredictions(requestResponses)
+                    addPredictionGroup(newGroup, socket)
+                })
+                .catch((err) => {
+                    console.log(err)
+                    socket.emit('predictionError', err)
+                })
+        } else {
+            const request: PredictionApiRequest = {
+                pred_type: 'single',
+                profile: 'standard_profile',
+                launch_latitude: parseFloat(data.launch_latitude).toFixed(4),
+                launch_longitude: (
+                    parseFloat(data.launch_longitude) + 360
+                ).toFixed(4),
+                launch_altitude: parseFloat(data.launch_altitude).toFixed(4),
+                launch_datetime: data.launch_datetime,
+                ascent_rate: parseFloat(data.ascent_rate).toFixed(4),
+                descent_rate: parseFloat(data.descent_rate).toFixed(4),
+                burst_altitude: parseFloat(data.burst_altitude).toFixed(4),
+            }
+
+            makePredictionApiRequests([request], () => null)
+                .then((requestResponses) => {
+                    const newGroup: PredictionGroup =
+                        processPredictions(requestResponses)
+                    addPredictionGroup(newGroup, socket)
+                })
+                .catch((err) => {
+                    console.log(err)
+                    // tell front end about the error
+                    socket.emit('predictionError', err)
+                })
+        }
+    })
+
+    // send most up to date predictions to front end
+    socket.on('getAllPredictions', () => {
+        getPredictions().then((items) => {
+            console.log('sending items:')
+            console.log(items)
+            socket.emit('allPredictions', items)
+        })
+    })
+
+    socket.on('deletePrediction', (id) => {
+        console.log('deleting item: ')
+        console.log(id)
+        db.del(`pGroup${id}`)
+    })
+}
+
+const addPredictionGroup = (group: PredictionGroup, socket: Socket) => {
+    // @ts-ignore - update the DB
+    db.put(`pGroup${group.id}`, group)
+
+    // send new prediction to front end
+    socket.emit('newPrediction', group)
+}
+
+const getPredictions = async () => {
+    const items = []
+    for await (const [key, value] of db.iterator({ gte: 'pGroup', lte: 'pGroup~'})) {
+        items.push(value)
+    }
+    return items
+}
 
 export function processPredictions(
     requestResponses: PredictionApiRequestResponse[]
