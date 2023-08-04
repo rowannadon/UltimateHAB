@@ -206,6 +206,23 @@ export const HistoryCharts = () => {
         },
     }
 
+    const rssiOptions = {
+        ...commonOptions,
+        scales: {
+            ...commonOptions.scales,
+            x: {
+                ...commonOptions.scales.x,
+            },
+            y: {
+                ...commonOptions.scales.y,
+                title: {
+                    display: true,
+                    text: 'RSSI (dBm)',
+                },
+            },
+        },
+    }
+
     return (
         <ScrollArea className="p-2 space-y-2 overflow-y-auto flex flex-col bg-slate-100 flex-grow max-h-[calc(100vh-2.5rem)]">
             <Card className='flex flex-row p-2 justify-between space-x-2 flex-grow'>
@@ -282,7 +299,21 @@ export const HistoryCharts = () => {
                                     y: d.atmosphere.temperature - 273.15
                                 }
                             })
-                        }]
+                        },
+                        {
+                            backgroundColor: 'rgba(99, 132, 255, 0.5)',
+                            borderColor: 'rgb(99, 132, 255)',
+                            fill: false,
+                            pointRadius: 0,
+                            borderWidth: 1,
+                            data: currentDataset.map(d => {
+                                return {
+                                    x: (d.oldTime - currentDataset[0].oldTime),
+                                    y: d.internalTemp - 273.15
+                                }
+                            })
+                        }
+                    ]
                     }}
                     
                     />
@@ -381,6 +412,26 @@ export const HistoryCharts = () => {
                                     return {
                                         x: (d.oldTime - currentDataset[0].oldTime),
                                         y: d.voltage
+                                    }
+                                })
+                            }]
+                        }} 
+                    />
+                </Card>
+                <Card className='p-2'>
+                    <Line // @ts-ignore
+                        options={rssiOptions} 
+                        data={{
+                            datasets: [{
+                                backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                                borderColor: 'rgb(255, 99, 132)',
+                                fill: false,
+                                pointRadius: 0, 
+                                borderWidth: 1,
+                                data: currentDataset.map(d => {
+                                    return {
+                                        x: (d.oldTime - currentDataset[0].oldTime),
+                                        y: d.RSSI
                                     }
                                 })
                             }]

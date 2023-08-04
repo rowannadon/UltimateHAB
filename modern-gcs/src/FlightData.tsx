@@ -25,20 +25,31 @@ export const FlightData = () => {
 
     return (
         <Card className='flex-grow'>
-            {data && <div>
+            {data && <div className='flex flex-grow flex-col'>
+                <table>
+                    <tbody>
+                        <tr>
+                            <th>Time</th>
+                            <td>{new Date(data?.oldTime).toISOString()}</td>
+                        </tr>
+                    </tbody>
+                </table>
                 <table>
                     <tbody>
                         <tr>
                             <th>Voltage</th>
-                            <td>{data?.voltage.toFixed(2)} V</td>
+                            <td>{data?.voltage.toFixed(2)}</td>
+                            <td>V</td>
                         </tr>
                         <tr>
-                            <th>Time</th>
-                            <td>{new Date(data?.oldTime).toString()}</td>
+                            <th>RSSI</th>
+                            <td>{data?.RSSI.toFixed(0)}</td>
+                            <td>dBm</td>
                         </tr>
                         <tr>
                             <th>Altitude</th>
-                            <td>{data?.position.alt.toFixed(0)} m</td>
+                            <td>{data?.position.alt.toFixed(0)}</td>
+                            <td>m</td>
                         </tr>
                         <tr>
                             <th>Latitude</th>
@@ -50,19 +61,33 @@ export const FlightData = () => {
                         </tr>
                         <tr>
                             <th>Humidity</th>
-                            <td>{data?.atmosphere.rh.toFixed(2)} %</td>
+                            <td>{data?.atmosphere.rh.toFixed(2)}</td>
+                            <td>%</td>
                         </tr>
                         <tr>
                             <th>Pressure</th>
-                            <td>{data?.atmosphere.pressure.toFixed(2)} kPa</td>
+                            <td>{data?.atmosphere.pressure.toFixed(2)}</td>
+                            <td>kPa</td>
+                        </tr>
+                        <tr>
+                            <th>Ext. Temp</th>
+                            <td>{(data?.atmosphere.temperature - 273.15).toFixed(2)}</td>
+                            <td>°C</td>
+                        </tr>
+                        <tr>
+                            <th>Int. Temp</th>
+                            <td>{(data?.internalTemp - 273.15).toFixed(2)}</td>
+                            <td>°C</td>
                         </tr>
                         <tr>
                             <th>Vertical Velocity</th>
-                            <td>{data?.velocity.toFixed(2)} m/s</td>
+                            <td>{data?.velocity.toFixed(2)}</td>
+                            <td>m/s</td>
                         </tr>
                         <tr>
                             <th>Horiz. Velocity</th>
-                            <td>{data?.hVelocity.toFixed(2)} m/s</td>
+                            <td>{data?.hVelocity.toFixed(2)}</td>
+                            <td>m/s</td>
                         </tr>
                     </tbody>
                 </table>

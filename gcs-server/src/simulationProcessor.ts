@@ -76,20 +76,14 @@ export function setupSimulation(socket: Socket) {
     })
 
     socket.on('deleteSimulation', async (id: string) => {
-        getSimulationPoints(id).then(async (items) => {
-            const keys: string[] = []
-            for await (const [key, value] of db.iterator({
-                gte: `simPoint${id}`,
-                lte: `simPoint${id}~`,
-            })) {
-                // @ts-ignore
-                items.push(key)
-            }
-            for (var key of keys) {
-                db.del(key)
-                console.log('deleting', key)
-            }
-        })
+        for await (const [key, value] of db.iterator({
+            gte: `simPoint${id}`,
+            lte: `simPoint${id}~`,
+        })) {
+            console.log('deleting: ', key)
+            db.del(key)
+        }
+
         db.del(`simRun${id}`)
     })
 
@@ -215,6 +209,10 @@ const createSimulationRun = async (
     var velocityBuffer = []
     var hVelocityBuffer = []
 
+    var internalTemp = standardAtmosphere(0, {si: true}).temperature
+    const coolingConstant = 0.0005
+    const launchPos = newPositions[0]
+
     for (let i = 0; i < newTimes.length; i++) {
         const position = newPositions[i]
         position.alt = position.alt + Math.random() * 1
@@ -239,9 +237,15 @@ const createSimulationRun = async (
         const altChange = position.alt - prevPos.alt
         prevPos = position
 
+        const distanceFromLaunch = distance([launchPos.lng, launchPos.lat], [position.lng, position.lat])
+
         const atmosphereParams = standardAtmosphere(position.alt, {
             si: true,
         })
+
+        const tempDifference = internalTemp - atmosphereParams.temperature;
+        const rateOfChange = -coolingConstant * tempDifference;
+        internalTemp += rateOfChange * (originalWaitTime/1000);
 
         var velocity = 0
         var hVelocity = 0
@@ -268,12 +272,14 @@ const createSimulationRun = async (
             oldTime: oldTime,
             position: position,
             velocity:
-                velocityBuffer.reduce((partialSum, a) => partialSum + a, 0) /
+                velocityBuffer.reduce((p, a) => p + a, 0) /
                 velocityBuffer.length,
             hVelocity:
-                hVelocityBuffer.reduce((partialSum, a) => partialSum + a, 0) /
+                hVelocityBuffer.reduce((p, a) => p + a, 0) /
                 hVelocityBuffer.length,
             voltage: voltage,
+            internalTemp: internalTemp,
+            RSSI: calculateRSSI(distanceFromLaunch, 4.33e8),
             atmosphere: {
                 ...atmosphereParams,
                 rh: atmosphereParams.pressure / 3000 + Math.random() * 4,
@@ -292,6 +298,30 @@ const createSimulationRun = async (
         multiple: mult,
     }
 }
+
+function calculateRSSI(distance: number, frequency: number, transmitterGain = 1, receiverGain = 1) {
+    if (distance === 0) {
+      return 0;
+    }
+  
+    // Constants
+    const speedOfLight = 299792458; // meters per second
+    const pathLossExponent = 2; // Free-space path loss exponent
+  
+    // Wavelength (lambda) = speed of light / frequency
+    const wavelength = speedOfLight / frequency;
+  
+    // Free-space path loss formula
+    const pathLoss = (4 * Math.PI * distance / wavelength) ** pathLossExponent;
+  
+    // RSSI in linear scale
+    const rssiLinear = transmitterGain * receiverGain / pathLoss;
+  
+    // Convert to dB scale
+    const rssiDb = 10 * Math.log10(rssiLinear);
+  
+    return rssiDb;
+  }
 
 function findClosestValue(pairs: any[], target: number): number {
     let closest = null

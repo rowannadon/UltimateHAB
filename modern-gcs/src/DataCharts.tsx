@@ -131,11 +131,11 @@ export const DataCharts = () => {
                     ...commonOptions.scales.x.realtime,
                     onRefresh: function(chart: any) {
                         if (dataRef.current?.length > 1) {
-                            chart.data.datasets.forEach(function(dataset: any) {
+                            chart.data.datasets.forEach(function(dataset: any, i: number) {
                                 const timeDiff = (dataRef.current[dataRef.current.length-1].time - dataRef.current[0].time)
                                 const obj = {
                                     x: date.current + timeDiff,
-                                    y: dataRef.current[dataRef.current.length-1].atmosphere.temperature - 273.15,
+                                    y: i === 0 ? dataRef.current[dataRef.current.length-1].atmosphere.temperature - 273.15 : dataRef.current[dataRef.current.length-1].internalTemp - 273.15,
                                 }
                                 
                                 if (prevTemp.current !== obj.x) {
@@ -343,6 +343,43 @@ export const DataCharts = () => {
         },
     }
 
+    const rssiOptions = {
+        ...commonOptions,
+        scales: {
+            ...commonOptions.scales,
+            x: {
+                ...commonOptions.scales.x,
+                realtime: {
+                    ...commonOptions.scales.x.realtime,
+                    onRefresh: function(chart: any) {
+                        if (dataRef.current.length > 1) {
+                            chart.data.datasets.forEach(function(dataset: any) {
+                                const timeDiff = (dataRef.current[dataRef.current.length-1].time - dataRef.current[0].time)
+                                const obj = {
+                                    x: date.current + timeDiff,
+                                    y: dataRef.current[dataRef.current.length-1].RSSI,
+                                }
+                                
+                                if (prevVol.current !== obj.x) {
+                                    dataset.data.push(obj)
+                                }
+        
+                                prevVol.current = obj.x
+                            });
+                        }
+                    },
+                }
+            },
+            y: {
+                ...commonOptions.scales.y,
+                title: {
+                    display: true,
+                    text: 'RSSI (dBm)',
+                },
+            },
+        },
+    }
+
     return (
         <ScrollArea className="space-y-2 p-2 overflow-y-auto flex flex-col bg-slate-100 flex-grow max-h-[calc(100vh-2.5rem)]">
             <Card className='p-2'> 
@@ -367,6 +404,14 @@ export const DataCharts = () => {
                         datasets: [{
                             backgroundColor: 'rgba(255, 99, 132, 0.5)',
                             borderColor: 'rgb(255, 99, 132)',
+                            fill: false,
+                            pointRadius: 0, 
+                            borderWidth: 2,
+                            data: []
+                        },
+                        {
+                            backgroundColor: 'rgba(132, 99, 255, 0.5)',
+                            borderColor: 'rgb(132, 99, 255)',
                             fill: false,
                             pointRadius: 0, 
                             borderWidth: 2,
@@ -439,6 +484,21 @@ export const DataCharts = () => {
             <Card className='p-2'>
                 <Line // @ts-ignore
                     options={voltageOptions} 
+                    data={{
+                            datasets: [{
+                                backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                                borderColor: 'rgb(255, 99, 132)',
+                                fill: false,
+                                pointRadius: 0, 
+                                borderWidth: 2,
+                                data: []
+                            }]
+                        }} 
+                />
+            </Card>
+            <Card className='p-2'>
+                <Line // @ts-ignore
+                    options={rssiOptions} 
                     data={{
                             datasets: [{
                                 backgroundColor: 'rgba(255, 99, 132, 0.5)',

@@ -89,6 +89,8 @@ export interface DataPoint {
     position: MapPoint3D
     atmosphere: AtmosphereData
     velocity: number
+    internalTemp: number
+    RSSI: number
     hVelocity: number
     voltage: number
 }
