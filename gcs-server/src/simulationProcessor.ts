@@ -237,7 +237,7 @@ const createSimulationRun = async (
         const altChange = position.alt - prevPos.alt
         prevPos = position
 
-        const distanceFromLaunch = distance([launchPos.lng, launchPos.lat], [position.lng, position.lat])
+        const distanceFromLaunch = distance([launchPos.lng, launchPos.lat], [position.lng, position.lat], {units: 'meters'})
 
         const atmosphereParams = standardAtmosphere(position.alt, {
             si: true,
@@ -279,7 +279,7 @@ const createSimulationRun = async (
                 hVelocityBuffer.length,
             voltage: voltage,
             internalTemp: internalTemp,
-            RSSI: calculateRSSI(distanceFromLaunch, 4.33e8),
+            RSSI: calculateRSSI(Math.sqrt(distanceFromLaunch*distanceFromLaunch + position.alt*position.alt), 4.33e8),
             atmosphere: {
                 ...atmosphereParams,
                 rh: atmosphereParams.pressure / 3000 + Math.random() * 4,
@@ -299,7 +299,7 @@ const createSimulationRun = async (
     }
 }
 
-function calculateRSSI(distance: number, frequency: number, transmitterGain = 1, receiverGain = 1) {
+function calculateRSSI(distance: number, frequency: number, transmitterGain = 2.5, receiverGain = 8) {
     if (distance === 0) {
       return 0;
     }

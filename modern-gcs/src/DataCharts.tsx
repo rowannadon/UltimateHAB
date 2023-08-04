@@ -14,11 +14,14 @@ Chart.register(ChartStreaming);
 export const DataCharts = () => {
     const prevAlt = useRef(0)
     const prevTemp = useRef(0)
+    const prevIntTemp = useRef(0)
     const prevPres = useRef(0)
     const prevHum = useRef(0)
     const prevVel = useRef(0)
     const prevHvel = useRef(0)
     const prevVol = useRef(0)
+    const prevRSSI = useRef(0)
+    
 
     const date = useRef(0)
     const dataRef = useRef<DataPoint[]>([])
@@ -133,16 +136,29 @@ export const DataCharts = () => {
                         if (dataRef.current?.length > 1) {
                             chart.data.datasets.forEach(function(dataset: any, i: number) {
                                 const timeDiff = (dataRef.current[dataRef.current.length-1].time - dataRef.current[0].time)
-                                const obj = {
-                                    x: date.current + timeDiff,
-                                    y: i === 0 ? dataRef.current[dataRef.current.length-1].atmosphere.temperature - 273.15 : dataRef.current[dataRef.current.length-1].internalTemp - 273.15,
+                                if (i === 0) {
+                                    const obj = {
+                                        x: date.current + timeDiff,
+                                        y: dataRef.current[dataRef.current.length-1].atmosphere.temperature - 273.15
+                                    }
+                                    if (prevTemp.current !== obj.x) {
+                                        dataset.data.push(obj)
+                                    }
+            
+                                    prevTemp.current = obj.x
+                                } else {
+                                    const obj = {
+                                        x: date.current + timeDiff,
+                                        y: dataRef.current[dataRef.current.length-1].internalTemp - 273.15,
+                                    }
+                                    
+                                    if (prevIntTemp.current !== obj.x) {
+                                        dataset.data.push(obj)
+                                    }
+            
+                                    prevIntTemp.current = obj.x
                                 }
                                 
-                                if (prevTemp.current !== obj.x) {
-                                    dataset.data.push(obj)
-                                }
-        
-                                prevTemp.current = obj.x
                             })
                         };
                     },
@@ -360,11 +376,11 @@ export const DataCharts = () => {
                                     y: dataRef.current[dataRef.current.length-1].RSSI,
                                 }
                                 
-                                if (prevVol.current !== obj.x) {
+                                if (prevRSSI.current !== obj.x) {
                                     dataset.data.push(obj)
                                 }
         
-                                prevVol.current = obj.x
+                                prevRSSI.current = obj.x
                             });
                         }
                     },
