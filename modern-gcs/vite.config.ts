@@ -23,6 +23,16 @@ export default defineConfig({
         ws: true,
         changeOrigin: true,
       },
+      '/map': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/map/, ''),
+      },
+      '/static': {
+        target: 'http://localhost:2123',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/static/, ''),
+      },
     }
   }
 })

@@ -13,8 +13,11 @@ Chart.register(ChartStreaming);
 
 export const DataCharts = () => {
     const prevAlt = useRef(0)
-    const prevTemp = useRef(0)
-    const prevIntTemp = useRef(0)
+    const prevPresAlt = useRef(0)
+    const prevExtTempDallas = useRef(0)
+    const prevExtTempAht = useRef(0)
+    const prevIntTempDallas = useRef(0)
+    const prevIntTempBmp = useRef(0)
     const prevPres = useRef(0)
     const prevHum = useRef(0)
     const prevVel = useRef(0)
@@ -43,17 +46,17 @@ export const DataCharts = () => {
                 dataRef.current = []
             }
 
-            const simulationProgress = (id: string, dataPoint: DataPoint) => {
+            const newDataPoint = (id: string, dataPoint: DataPoint) => {
                 dataRef.current.push(dataPoint)
                 console.log('receiving packet')
             }
 
             socket.on('newSimulation', newSimulation)
-            console.log(socket.on('simulationProgress', simulationProgress))
+            console.log(socket.on('newDataPoint', newDataPoint))
 
             return () => {
                 socket.off('newSimulation', newSimulation)
-                socket.off('simulationProgress', simulationProgress)
+                socket.off('newDataPoint', newDataPoint)
             }
         }
     }, [socket])
@@ -71,10 +74,10 @@ export const DataCharts = () => {
                 display: false,
                 type: 'realtime',  // Change this
                 realtime: {    // Add this for streaming data
-                    duration: 10000,
-                    refresh: 100,
+                    duration: 35000,
+                    refresh: 500,
                     delay: 500,
-                    ttl: 11000,
+                    ttl: 35000,
                     framerate: 30,
                 },
                 time: {
@@ -98,18 +101,33 @@ export const DataCharts = () => {
                     ...commonOptions.scales.x.realtime,
                     onRefresh: function(chart: any) {
                         if (dataRef.current.length > 1) {
-                            chart.data.datasets.forEach(function(dataset: any) {
-                                const timeDiff = (dataRef.current[dataRef.current.length-1].time - dataRef.current[0].time)
-                                const obj = {
-                                    x: date.current + timeDiff,
-                                    y: dataRef.current[dataRef.current.length-1].position.alt,
+                            chart.data.datasets.forEach(function(dataset: any, i: number) {
+                                if (i == 0) {
+                                    const timeDiff = (dataRef.current[dataRef.current.length-1].time - dataRef.current[0].time)
+                                    const obj = {
+                                        x: date.current + timeDiff,
+                                        y: dataRef.current[dataRef.current.length-1].gpsAlt,
+                                    }
+                                    
+                                    if (prevAlt.current !== obj.x) {
+                                        dataset.data.push(obj)
+                                    }
+            
+                                    prevAlt.current = obj.x
+                                } else if (i == 1) {
+                                    const timeDiff = (dataRef.current[dataRef.current.length-1].time - dataRef.current[0].time)
+                                    const obj = {
+                                        x: date.current + timeDiff,
+                                        y: dataRef.current[dataRef.current.length-1].pressureAlt,
+                                    }
+                                    
+                                    if (prevPresAlt.current !== obj.x) {
+                                        dataset.data.push(obj)
+                                    }
+            
+                                    prevPresAlt.current = obj.x
                                 }
                                 
-                                if (prevHum.current !== obj.x) {
-                                    dataset.data.push(obj)
-                                }
-        
-                                prevHum.current = obj.x
                             });
                         }
                     },
@@ -139,24 +157,46 @@ export const DataCharts = () => {
                                 if (i === 0) {
                                     const obj = {
                                         x: date.current + timeDiff,
-                                        y: dataRef.current[dataRef.current.length-1].atmosphere.temperature - 273.15
+                                        y: dataRef.current[dataRef.current.length-1].tempExtDallas
                                     }
-                                    if (prevTemp.current !== obj.x) {
+                                    if (prevExtTempDallas.current !== obj.x) {
                                         dataset.data.push(obj)
                                     }
             
-                                    prevTemp.current = obj.x
+                                    prevExtTempDallas.current = obj.x
+                                } else if (i === 1) {
+                                    const obj = {
+                                        x: date.current + timeDiff,
+                                        y: dataRef.current[dataRef.current.length-1].tempExtAht,
+                                    }
+                                    
+                                    if (prevExtTempAht.current !== obj.x) {
+                                        dataset.data.push(obj)
+                                    }
+            
+                                    prevExtTempAht.current = obj.x
+                                } else if (i === 2 ) {
+                                    const obj = {
+                                        x: date.current + timeDiff,
+                                        y: dataRef.current[dataRef.current.length-1].tempIntDallas,
+                                    }
+                                    
+                                    if (prevIntTempDallas.current !== obj.x) {
+                                        dataset.data.push(obj)
+                                    }
+            
+                                    prevIntTempDallas.current = obj.x
                                 } else {
                                     const obj = {
                                         x: date.current + timeDiff,
-                                        y: dataRef.current[dataRef.current.length-1].internalTemp - 273.15,
+                                        y: dataRef.current[dataRef.current.length-1].tempIntBmp,
                                     }
                                     
-                                    if (prevIntTemp.current !== obj.x) {
+                                    if (prevIntTempBmp.current !== obj.x) {
                                         dataset.data.push(obj)
                                     }
             
-                                    prevIntTemp.current = obj.x
+                                    prevIntTempBmp.current = obj.x
                                 }
                                 
                             })
@@ -188,7 +228,7 @@ export const DataCharts = () => {
                                 const timeDiff = (dataRef.current[dataRef.current.length-1].time - dataRef.current[0].time)
                                 const obj = {
                                     x: date.current + timeDiff,
-                                    y: dataRef.current[dataRef.current.length-1].atmosphere.pressure,
+                                    y: dataRef.current[dataRef.current.length-1].pressure,
                                 }
                                 
                                 if (prevPres.current !== obj.x) {
@@ -205,7 +245,7 @@ export const DataCharts = () => {
                 ...commonOptions.scales.y,
                 title: {
                     display: true,
-                    text: 'Pressure (kPa)',
+                    text: 'Pressure (hPa)',
                 },
             },
         },
@@ -225,14 +265,14 @@ export const DataCharts = () => {
                                 const timeDiff = (dataRef.current[dataRef.current.length-1].time - dataRef.current[0].time)
                                 const obj = {
                                     x: date.current + timeDiff,
-                                    y: dataRef.current[dataRef.current.length-1].atmosphere.rh,
+                                    y: dataRef.current[dataRef.current.length-1].humidity,
                                 }
                                 
-                                if (prevAlt.current !== obj.x) {
+                                if (prevHum.current !== obj.x) {
                                     dataset.data.push(obj)
                                 }
         
-                                prevAlt.current = obj.x
+                                prevHum.current = obj.x
                             });
                         }
                     },
@@ -262,7 +302,7 @@ export const DataCharts = () => {
                                 const timeDiff = (dataRef.current[dataRef.current.length-1].time - dataRef.current[0].time)
                                 const obj = {
                                     x: date.current + timeDiff,
-                                    y: dataRef.current[dataRef.current.length-1].velocity,
+                                    y: dataRef.current[dataRef.current.length-1].vVelocity,
                                 }
                                 
                                 if (prevVel.current !== obj.x) {
@@ -373,7 +413,7 @@ export const DataCharts = () => {
                                 const timeDiff = (dataRef.current[dataRef.current.length-1].time - dataRef.current[0].time)
                                 const obj = {
                                     x: date.current + timeDiff,
-                                    y: dataRef.current[dataRef.current.length-1].RSSI,
+                                    y: dataRef.current[dataRef.current.length-1].sats,
                                 }
                                 
                                 if (prevRSSI.current !== obj.x) {
@@ -409,6 +449,14 @@ export const DataCharts = () => {
                                 pointRadius: 0, 
                                 borderWidth: 2,
                                 data: []
+                            },
+                            {
+                                backgroundColor: 'rgba(132, 99, 255, 0.5)',
+                                borderColor: 'rgb(132, 99, 255)',
+                                fill: false,
+                                pointRadius: 0, 
+                                borderWidth: 2,
+                                data: []
                             }]
                         }} 
                 />
@@ -428,6 +476,22 @@ export const DataCharts = () => {
                         {
                             backgroundColor: 'rgba(132, 99, 255, 0.5)',
                             borderColor: 'rgb(132, 99, 255)',
+                            fill: false,
+                            pointRadius: 0, 
+                            borderWidth: 2,
+                            data: []
+                        },
+                        {
+                            backgroundColor: 'rgba(132, 255, 99, 0.5)',
+                            borderColor: 'rgb(132, 255, 99)',
+                            fill: false,
+                            pointRadius: 0, 
+                            borderWidth: 2,
+                            data: []
+                        },
+                        {
+                            backgroundColor: 'rgba(204, 0, 204, 0.5)',
+                            borderColor: 'rgb(204, 0, 204)',
                             fill: false,
                             pointRadius: 0, 
                             borderWidth: 2,

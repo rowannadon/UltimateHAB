@@ -248,6 +248,7 @@ export function InputForm(props: any) {
                                 <FormControl>
                                     <DateTimePicker
                                         granularity={'hour'}
+                                        aria-label="Launch Date and Time"
                                         value={selectedDate}
                                         onChange={(date) => {                    
                                             setSelectedDate(date as CalendarDateTime)

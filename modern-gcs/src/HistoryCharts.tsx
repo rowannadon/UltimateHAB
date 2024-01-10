@@ -27,8 +27,8 @@ export const HistoryCharts = () => {
         if (currentDataset) {
             const x = currentDataset.map(d => {
                 return {
-                    x: (d.oldTime - currentDataset[0].oldTime) + Date.now(),
-                    y: d.position.alt
+                    x: (d.time - currentDataset[0].time) + Date.now(),
+                    y: d.gpsAlt
                 }
             })
             console.log(x)
@@ -39,12 +39,13 @@ export const HistoryCharts = () => {
     useEffect(() => {
         if (socket) {
             const setSimulations = (simulations: SimulationRun[]) => {
+                console.log('got simulations: ', simulations)
                 setDatasets(simulations)
             }
 
             const setSimulationPoints = (points: DataPoint[]) => {
                 points.sort(function(a, b) {
-                    return a.oldTime - b.oldTime;
+                    return a.time - b.time;
                 });
                 setCurrentDataset(points)
             }
@@ -233,22 +234,24 @@ export const HistoryCharts = () => {
                     <SelectTrigger >
                         <SelectValue placeholder="Select Preset" />
                     </SelectTrigger>
-                    <SelectContent>
-                        {datasets.map((dataset) => {
-                            return (
-                                <SelectItem key={dataset.id} value={dataset.id}>{dataset.id.slice(0, 8)}</SelectItem>
-                            )
-                        })}
+                    <SelectContent className='max-h-[350px]'>
+                        <ScrollArea>
+                            {datasets.map((dataset) => {
+                                return (
+                                    <SelectItem key={dataset.id} value={dataset.id}>{dataset.id.slice(0, 8)}</SelectItem>
+                                )
+                            })}
+                        </ScrollArea>
                     </SelectContent>
                 </Select>
                 <Button variant="outline" className="w-14 h-9 p-0" onClick={() => {
                     console.log(currentSimulation)
                     socket.emit('deleteSimulation', currentSimulation)
 
-                    setDatasets(prev => prev.filter(s => s.id != currentSimulation))
+                    //setDatasets(prev => prev.filter(s => s.id != currentSimulation))
                     setCurrentSimulation('')
-                    socket.emit('getAllSimulations')
                     setCurrentDataset([])
+                    
                 }}>
                     <Trash />
                 </Button>
@@ -275,8 +278,8 @@ export const HistoryCharts = () => {
                                 borderWidth: 1,
                                 data: currentDataset.map(d => {
                                     return {
-                                        x: (d.oldTime - currentDataset[0].oldTime),
-                                        y: d.position.alt
+                                        x: (d.time - currentDataset[0].time),
+                                        y: d.pressureAlt
                                     }
                                 })
                             }]
@@ -295,8 +298,8 @@ export const HistoryCharts = () => {
                             borderWidth: 1,
                             data: currentDataset.map(d => {
                                 return {
-                                    x: (d.oldTime - currentDataset[0].oldTime),
-                                    y: d.atmosphere.temperature - 273.15
+                                    x: (d.time - currentDataset[0].time),
+                                    y: d.tempExtDallas
                                 }
                             })
                         },
@@ -308,8 +311,8 @@ export const HistoryCharts = () => {
                             borderWidth: 1,
                             data: currentDataset.map(d => {
                                 return {
-                                    x: (d.oldTime - currentDataset[0].oldTime),
-                                    y: d.internalTemp - 273.15
+                                    x: (d.time - currentDataset[0].time),
+                                    y: d.tempIntDallas
                                 }
                             })
                         }
@@ -330,8 +333,8 @@ export const HistoryCharts = () => {
                                 borderWidth: 1,
                                 data: currentDataset.map(d => {
                                     return {
-                                        x: (d.oldTime - currentDataset[0].oldTime),
-                                        y: d.atmosphere.pressure
+                                        x: (d.time - currentDataset[0].time),
+                                        y: d.pressure
                                     }
                                 })
                             }]
@@ -350,8 +353,8 @@ export const HistoryCharts = () => {
                                 borderWidth: 1,
                                 data: currentDataset.map(d => {
                                     return {
-                                        x: (d.oldTime - currentDataset[0].oldTime),
-                                        y: d.atmosphere.rh
+                                        x: (d.time - currentDataset[0].time),
+                                        y: d.humidity
                                     }
                                 })
                             }]
@@ -370,8 +373,8 @@ export const HistoryCharts = () => {
                                 borderWidth: 1,
                                 data: currentDataset.map(d => {
                                     return {
-                                        x: (d.oldTime - currentDataset[0].oldTime),
-                                        y: d.velocity
+                                        x: (d.time - currentDataset[0].time),
+                                        y: d.vVelocity
                                     }
                                 })
                             }]
@@ -390,7 +393,7 @@ export const HistoryCharts = () => {
                                 borderWidth: 1,
                                 data: currentDataset.map(d => {
                                     return {
-                                        x: (d.oldTime - currentDataset[0].oldTime),
+                                        x: (d.time - currentDataset[0].time),
                                         y: d.hVelocity
                                     }
                                 })
@@ -410,7 +413,7 @@ export const HistoryCharts = () => {
                                 borderWidth: 1,
                                 data: currentDataset.map(d => {
                                     return {
-                                        x: (d.oldTime - currentDataset[0].oldTime),
+                                        x: (d.time - currentDataset[0].time),
                                         y: d.voltage
                                     }
                                 })
@@ -430,8 +433,8 @@ export const HistoryCharts = () => {
                                 borderWidth: 1,
                                 data: currentDataset.map(d => {
                                     return {
-                                        x: (d.oldTime - currentDataset[0].oldTime),
-                                        y: d.RSSI
+                                        x: (d.time - currentDataset[0].time),
+                                        y: d.sats
                                     }
                                 })
                             }]

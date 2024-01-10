@@ -1,19 +1,14 @@
 import { Server, Socket } from 'socket.io'
-import {
-    DataPoint,
-    MapPoint3D,
-    SimulationRun,
-} from '../../modern-gcs/src/StateStore'
 import { Level } from 'level'
-import standardAtmosphere from 'standard-atmosphere'
 import {
     setupPrediction,
 } from './predictionProcessor'
-import { v4 as uuid } from 'uuid'
-import distance from '@turf/distance'
-import fs from 'fs'
 import { setupSimulation } from './simulationProcessor'
+import { setupSerial } from './serialPort'
+import express from 'express'
+import path from 'path'
 
+const app = express();
 const port = 3001
 const io = new Server(port)
 
@@ -24,4 +19,11 @@ io.on('connect', (socket) => {
     currentSocket = socket
     setupPrediction(socket)
     setupSimulation(socket)
+    setupSerial(socket)
 })
+
+app.use(express.static(path.join(__dirname, '../public')));
+
+app.listen(2123, () => {
+  console.log('Server running on http://localhost:2123/');
+});

@@ -17,11 +17,9 @@ import {
     Trash,
 } from 'lucide-react'
 import * as z from 'zod'
-import axios from 'axios'
-import uuid from 'react-uuid'
 import { InputForm } from './InputForm'
 import {PredictorFormSchema} from './StateStore'
-import { Color, ColorConverter, mapRange } from './util'
+import { ColorConverter } from './util'
 import {
     PredictionGroup,
     useStore,
@@ -33,18 +31,11 @@ import {
     DialogTrigger,
 } from '@/components/ui/dialog'
 import { Accordion } from './components/ui/accordion'
-import {
-    AccordionContent,
-    AccordionItem,
-    AccordionTrigger,
-} from '@radix-ui/react-accordion'
-import { Separator } from './components/ui/separator'
 import { Progress } from './components/ui/progress'
 import { socket } from './socket'
-import { Popover, PopoverTrigger } from './components/ui/popover'
-import { PopoverContent } from '@radix-ui/react-popover'
-import { SimulationForm, SimulationFormSchema } from './SimulationForm'
 import { PredictionUIElement } from './PredictionUIElement'
+import { Switch } from './components/ui/switch'
+import { Label } from './components/ui/label'
 
 export const Predict = (props: any) => {
     const [loadingPrediction, setLoadingPrediction] = useState(false)
@@ -125,7 +116,7 @@ export const Predict = (props: any) => {
 
     return (
         <div className="flex flex-col space-y-2 p-2 bg-slate-100 flex-grow h-[calc(100vh-2.5rem)]">
-            <Card className="flex flex-row p-2 justify-between">
+            <Card className="flex flex-row p-2 justify-between align-middle">
                 <div className="space-x-2">
                     <Dialog open={singleOpen} onOpenChange={setSingleOpen}>
                         <DialogTrigger asChild>
@@ -162,13 +153,15 @@ export const Predict = (props: any) => {
                         </DialogContent>
                     </Dialog>
                 </div>
-                <div className="space-x-2">
-                    <Button variant="outline" className="w-9 h-9 p-0">
+                <div className="space-x-2 p-[5px] align-center">
+                    {/* <Button variant="outline" className="w-9 h-9 p-0">
                         <Eye />
                     </Button>
                     <Button variant="outline" className="w-9 h-9 p-0">
                         <Trash />
-                    </Button>
+                    </Button> */}
+                    <Label>Local Map</Label>
+                    <Switch checked={props.localMap} onCheckedChange={(c) => props.onChangeLocalMap(c)} />
                 </div>
             </Card>
             <Card className="flex flex-grow flex-col space-y-2 p-2 overflow-y-auto">

@@ -1,23 +1,22 @@
-import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import { Sidebar } from './Sidebar'
 import { DeckMap } from './DeckMap'
 import { DataSidebar } from './DataSidebar'
+import { useState } from 'react'
 
 function App() {
+    const [localMap, setLocalMap] = useState(false)
+
     return (
-        <div className="h-screen w-screen">
-            <PanelGroup direction="horizontal">
-                <Panel defaultSize={20} minSize={15} className="z-10 h-screen left-0">
-                    <Sidebar />
-                </Panel>
-                <PanelResizeHandle className="w-2 z-10 bg-transparent -ml-1" />
-                <Panel minSize={0}>
-                    <DeckMap />
-                </Panel>
-                <Panel defaultSize={30} minSize={20} className="absolute z-10 h-screen w-[300px] right-0">
-                    <DataSidebar />
-                </Panel>
-            </PanelGroup>
+        <div className="flex flex-row h-screen w-screen">
+            <div className='flex h-full w-[640px] z-10 left-0 bg-slate-400'>
+                <Sidebar localMap={localMap} onChangeLocalMap={(c: boolean) => setLocalMap(c)} />
+            </div>
+            <div className='flex flex-grow w-full z-0'>
+                <DeckMap localMap={localMap} />
+            </div>
+            <div className='flex h-full w-[400px] z-10 right-0 bg-slate-400'>
+                <DataSidebar />
+            </div>
         </div>
     )
 }

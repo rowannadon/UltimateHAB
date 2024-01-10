@@ -15,11 +15,13 @@
     "@turf/distance": "^6.5.0",
     "@turf/turf": "^6.5.0",
     "axios": "^1.4.0",
+    "chokidar": "^3.5.3",
     "csv": "^6.3.1",
     "express": "^4.18.2",
     "geo-tz": "^7.0.7",
     "level": "^8.0.0",
     "level-sublevel": "^6.6.5",
+    "serialport": "^11.0.1",
     "socket.io": "^4.7.1",
     "standard-atmosphere": "^0.3.5",
     "uuid": "^9.0.0"

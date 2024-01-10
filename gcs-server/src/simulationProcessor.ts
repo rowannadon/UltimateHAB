@@ -3,6 +3,7 @@ import { db } from './index'
 import {
     DataPoint,
     MapPoint3D,
+    SimDataPoint,
     SimulationRun,
 } from '../../modern-gcs/src/StateStore'
 import standardAtmosphere from 'standard-atmosphere'
@@ -11,11 +12,7 @@ import distance from '@turf/distance'
 import fs from 'fs'
 import { parse } from 'csv-parse'
 import { currentSocket } from './index'
-
-const runningSimulations = new Map<
-    String,
-    { run: SimulationRun; ac: AbortController }
->()
+import { vehicles } from './shared'
 
 const batteryInfo: any[] = []
 
@@ -40,7 +37,7 @@ export function setupSimulation(socket: Socket) {
                 startTime
             )
             const ac = new AbortController()
-            runningSimulations.set(run.id, { ac: ac, run: run })
+            vehicles.set(run.id, { ac: ac, run: run })
             socket.emit('newSimulation', run)
             // @ts-ignore
             db.put(`simRun${run.id}`, run)
@@ -48,16 +45,16 @@ export function setupSimulation(socket: Socket) {
         }
     )
 
-    const sendSimulations = () => {
+    socket.on('getVehicles', () => {
+        sendVehicles()
+    })
+
+    const sendVehicles = () => {
         socket.emit(
-            'runningSimulations',
-            Array.from(runningSimulations.entries()).map((x) => x[1].run)
+            'vehicles',
+            Array.from(vehicles.entries()).map((x) => x[1].run)
         )
     }
-
-    socket.on('getRunningSimulations', () => {
-        sendSimulations()
-    })
 
     socket.on('getAllSimulations', async () => {
         getSimulations().then((items) => {
@@ -75,27 +72,44 @@ export function setupSimulation(socket: Socket) {
         })
     })
 
+    socket.on('getSimulationPoints2', async (id: string) => {
+        getSimulationPoints(id).then((items) => {
+            console.log('sending simulation points from db:')
+            console.log(items)
+            socket.emit('simulationPoints2', items)
+        })
+    })
+
     socket.on('deleteSimulation', async (id: string) => {
         for await (const [key, value] of db.iterator({
-            gte: `simPoint${id}`,
-            lte: `simPoint${id}~`,
+            gte: `dataPoint${id}`,
+            lte: `dataPoint${id}~`,
         })) {
             console.log('deleting: ', key)
-            db.del(key)
+            await db.del(key)
         }
 
-        db.del(`simRun${id}`)
+        await db.del(`simRun${id}`)
+        getSimulations().then((items) => {
+            console.log('sending simulations from db:')
+            console.log(items)
+            socket.emit('allSimulations', items)
+        })
     })
 
     socket.on('stopSimulation', (id: string) => {
         console.log('stopping: ', id)
-        const x = runningSimulations.get(id)
+        const x = vehicles.get(id)
         if (x) {
-            x.ac.abort()
+            try {
+                x.ac.abort()
+            } catch (e) {
+                console.log(e)
+            }
         }
 
-        runningSimulations.delete(id)
-        sendSimulations()
+        vehicles.delete(id)
+        sendVehicles()
     })
 }
 
@@ -111,10 +125,10 @@ const getSimulations = async () => {
 }
 
 const getSimulationPoints = async (id: string) => {
-    const items: DataPoint[] = []
+    const items: SimDataPoint[] = []
     for await (const [key, value] of db.iterator({
-        gte: `simPoint${id}`,
-        lte: `simPoint${id}~`,
+        gte: `dataPoint`,
+        lte: `dataPoint~`,
     })) {
         // @ts-ignore
         items.push(value)
@@ -122,22 +136,43 @@ const getSimulationPoints = async (id: string) => {
     return items
 }
 
+const kelvinFactor = 273.15;
+
 const runSimulation = async (run: SimulationRun, signal: AbortSignal) => {
     if (currentSocket != null) {
         for (var i = 0; i < run.waitTimes.length; i++) {
             if (run.dataPoints[i] && !signal.aborted) {
+                const simData = run.dataPoints[i];
+                const realData : DataPoint = {
+                    id: simData.id,
+                    humidity: simData.atmosphere.rh,
+                    tempExtAht: simData.atmosphere.temperature - kelvinFactor,
+                    tempExtDallas: simData.atmosphere.temperature - kelvinFactor,
+                    tempIntDallas: simData.internalTemp - kelvinFactor,
+                    tempIntBmp: simData.internalTemp - kelvinFactor,
+                    pressure: simData.atmosphere.pressure,
+                    pressureAlt: simData.position.alt,
+                    voltage: simData.voltage,
+                    sats: 0,
+                    lat: simData.position.lat,
+                    lng: simData.position.lng,
+                    gpsAlt: simData.position.alt,
+                    time: simData.time,
+                    hVelocity: simData.hVelocity,
+                    vVelocity: simData.velocity,
+                }
                 currentSocket.emit(
-                    'simulationProgress',
+                    'newDataPoint',
                     run.id,
-                    run.dataPoints[i]
+                    realData
                 )
                 console.log('sending data for: ', run.id, currentSocket.id)
                 // @ts-ignore
-                db.put(`simPoint${run.id}_${i}`, run.dataPoints[i])
+                db.put(`dataPoint${run.id}_${i}`, realData)
                 await new Promise((r) => setTimeout(r, run.waitTimes[i]))
             }
         }
-        runningSimulations.delete(run.id)
+        vehicles.delete(run.id)
         currentSocket.emit('endSimulation', run.id)
     }
 }
@@ -200,7 +235,7 @@ const createSimulationRun = async (
 
     var prevPos = positions[0]
 
-    const packets: DataPoint[] = []
+    const packets: SimDataPoint[] = []
     const waitTimes: number[] = []
 
     const originalCapacity = 1000
@@ -266,7 +301,7 @@ const createSimulationRun = async (
             velocityBuffer.shift()
         }
 
-        const packet: DataPoint = {
+        const packet: SimDataPoint = {
             id: simulationRunId,
             time: time,
             oldTime: oldTime,

@@ -91,3 +91,21 @@ export function mapRange(value: number, inputMin: number, inputMax: number, outp
     // Then, scale this normalized value to the output range
     return normalized * (outputMax - outputMin) + outputMin
 }
+
+export function chunkArray(array: any[], chunkSize: number) {
+    if (chunkSize <= 0) {
+        throw new Error("Chunk size must be greater than 0");
+    }
+
+    const result = [];
+    for (let i = 0; i < array.length; i += chunkSize) {
+        // For the first chunk, slice normally
+        if (i === 0) {
+            result.push(array.slice(i, i + chunkSize+1));
+        } else {
+            // For subsequent chunks, include the last element of the previous chunk
+            result.push(array.slice(i - 1, i + chunkSize));
+        }
+    }
+    return result;
+}

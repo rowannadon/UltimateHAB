@@ -72,17 +72,17 @@ export interface PredictionApiRequestResponse {
 }
 
 export const INITIAL_VIEW_STATE = {
-    latitude: 35.1525,
-    longitude: -105.7546,
+    latitude: 35.6858,
+    longitude: -105.9622,
     zoom: 10,
     pitch: 0,
     bearing: 0,
     minPitch: 0,
-    maxPitch: 80,
+    maxPitch: 85,
     maxZoom: 23,
 }
 
-export interface DataPoint {
+export interface SimDataPoint {
     id: string
     time: number
     oldTime: number
@@ -95,6 +95,25 @@ export interface DataPoint {
     voltage: number
 }
 
+export interface DataPoint {
+    id: string
+    humidity: number,
+    tempExtAht: number,
+    tempExtDallas: number,
+    tempIntDallas: number,
+    tempIntBmp: number,
+    pressure: number,
+    pressureAlt: number,
+    voltage: number,
+    sats: number,
+    lat: number,
+    lng: number,
+    gpsAlt: number,
+    time: number,
+    hVelocity: number,
+    vVelocity: number,
+}
+
 export interface AtmosphereData {
     temperature: number
     density: number
@@ -105,7 +124,7 @@ export interface AtmosphereData {
 }
 
 export interface SimulationRun {
-    dataPoints: DataPoint[]
+    dataPoints: SimDataPoint[]
     waitTimes: number[]
     id: string
     startTime: number
@@ -138,6 +157,20 @@ export const PredictorFormSchema = z.object({
 export const useMarkerStore = create((set) => ({
     markerPosition: [INITIAL_VIEW_STATE.longitude, INITIAL_VIEW_STATE.latitude, 0],
     updateMarkerPosition: (pos: any) => set(() => ({ markerPosition: pos })),
+}))
+
+export const useGroundPositionStore = create((set) => ({
+    groundPosition: [INITIAL_VIEW_STATE.longitude, INITIAL_VIEW_STATE.latitude, 0],
+    updateGroundPosition: (pos: any) => set(() => ({ groundPosition: pos })),
+}))
+
+export const usePositionStore = create((set) => ({
+    currentPositionsBuffer: [],
+    positionChunks: [],
+    setCurrentPositionsBuffer: (buffer: string) => set(() => ({ setCurrentPositionsBuffer: buffer })),
+    resetCurrentPositionsBuffer: () => set((state: any) => ({ currentPositionsBuffer: state.currentPositionsBuffer.slice(-1)})),
+    setPositionChunks: (pos: any) => set((state: any) => ({ positionChunks: [state.positionChunks, ...pos] })),
+    addPosition: (pos: any) => set((state: any) => ({ currentPositionsBuffer: [...state.currentPositionsBuffer, pos] })),
 }))
 
 export const useStore = create((set) => ({

@@ -10,6 +10,8 @@ import {
     BarChart,
     Eye,
     EyeOff,
+    Loader2,
+    Play,
     Trash,
 } from 'lucide-react'
 import * as z from 'zod'
@@ -85,36 +87,6 @@ export const PredictionUIElement = (props: any) => {
         },
     )
 
-    const SimulationMenu = (props : any) => {
-        return (
-            <Popover open={props.open} >
-                <PopoverTrigger asChild >
-                    <Button
-                        variant="outline"
-                        className="w-9 p-0 h-9"
-                        onClick={(e) => {
-                            e.preventDefault()
-                            setSimulationMenuOpen(!props.open)
-                        }}
-                    >
-                        <BarChart className='w-5 y-5' />
-                    </Button>
-                </PopoverTrigger>
-                <PopoverContent className='-mt-1'>
-                    <Card >
-                        <SimulationForm onSubmit={(data: z.infer<typeof SimulationFormSchema>) => {
-                            if (!simulationRunning) {
-                                socket.emit('startSimulation', props.id, data.minutes, Date.now())
-                                setSimulationRunning(true)
-                            }
-                        }} loading={simulationRunning} />
-                    </Card>
-                    
-                </PopoverContent>
-            </Popover >
-        )
-    }
-
     return (
         <AccordionItem value={props.data.id} className="w-full">
             <AccordionTrigger className="w-full" asChild>
@@ -152,8 +124,22 @@ export const PredictionUIElement = (props: any) => {
                             </p>
                         </div>
                         <div className="flex flex-row space-x-2">
-                            <SimulationMenu open={simulationMenuOpen} id={props.data.id} />
-                            
+                            <Button 
+                                variant="outline" 
+                                disabled={simulationRunning} 
+                                className='w-9 h-9 p-0'
+                                onClick={() => {
+                                    if (!simulationRunning) {
+                                        socket.emit('startSimulation', props.data.id, 10, Date.now())
+                                        setSimulationRunning(true)
+                                    }
+                                }}
+                            >
+                                {simulationRunning && (
+                                    <Loader2 className="animate-spin" />
+                                )}
+                                {!simulationRunning && <Play className='w-5 h-5' />}
+                            </Button>
                             <Button
                                 variant="outline"
                                 className="w-9 p-0 h-9"
