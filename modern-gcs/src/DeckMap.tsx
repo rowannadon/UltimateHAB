@@ -15,7 +15,7 @@ import { mapRange, chunkArray } from './util';
 import { Button } from './components/ui/button';
 import { Crosshair } from 'lucide-react';
 
-const TOKEN = '.' 
+const TOKEN = 'pk.eyJ1Ijoicm5hZG9uIiwiYSI6ImNsa2tmczNtcjAydGEza212b3lpcXBqb2gifQ.9_7-4h5yxZOpJNh_7RvpoA' 
 
 const pointIconMapping = {
     marker: {
@@ -79,12 +79,6 @@ export function DeckMap(props: any) {
             children.setAttribute('style', 'display: hidden')
         }
     }, [mainMap])
-
-    useEffect(() => {
-        socket.emit('getSimulationPoints2', 'Serial-1f6d0674-c1fc-41df-b175-a9ce74cbc7a7')
-        //socket.emit('getSimulationPoints2', 'Serial-e976c025-c0f7-481f-ab37-8bdcfebb3503')
-        setOffset(2140);
-    }, [])
 
     useEffect(() => {
         if (socket) {

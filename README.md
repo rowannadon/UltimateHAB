@@ -8,4 +8,9 @@ Supported Features:
 * Launch simulation
 * Data viewing
 
-![alt text](https://github.com/rowannadon/UltimateHAB/blob/main/screenshot.png?raw=true)
+![screenshot 1](https://github.com/rowannadon/UltimateHAB/blob/main/screenshot1.png?raw=true)
+
+![screenshot 2](https://github.com/rowannadon/UltimateHAB/blob/main/screenshot2.png?raw=true)
+
+![screenshot 3](https://github.com/rowannadon/UltimateHAB/blob/main/screenshot3.png?raw=true)
+
